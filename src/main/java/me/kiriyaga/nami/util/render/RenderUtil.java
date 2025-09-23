@@ -161,6 +161,7 @@ public class RenderUtil {
 
     // 3d
     public static void drawBoxFilled(MatrixStack stack, Box box, Color c) {
+        if (box.contains(MC.getEntityRenderDispatcher().camera.getPos())) return;
         float minX = (float) (box.minX - MC.getEntityRenderDispatcher().camera.getPos().getX());
         float minY = (float) (box.minY - MC.getEntityRenderDispatcher().camera.getPos().getY());
         float minZ = (float) (box.minZ - MC.getEntityRenderDispatcher().camera.getPos().getZ());

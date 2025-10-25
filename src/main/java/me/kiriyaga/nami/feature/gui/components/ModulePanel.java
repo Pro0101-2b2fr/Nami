@@ -124,4 +124,8 @@ public class ModulePanel {
                 Math.min((int)(b/factor), 255),
                 alpha);
     }
+
+    private int toRGBA(Color color) {
+        return color.getRGB();
+    }
 }

@@ -6,6 +6,7 @@ import me.kiriyaga.nami.feature.command.RegisterCommand;
 import net.minecraft.text.MutableText;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static me.kiriyaga.nami.Nami.*;
 
@@ -28,19 +29,19 @@ public class HelpCommand extends Command {
             return;
         }
 
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < cmds.size(); i++) {
-            if (cmds.get(i) instanceof ModuleCommand)
-                continue; // TODO: when addon impl, rewrite theese to dynamic
+        // TODO: when addon impl, rewrite theese to dynamic
+        String displayText = cmds.stream()
+                .filter(c -> !(c instanceof ModuleCommand))
+                .filter(c -> c.getName() != null)
+                .map(this::getDisplay)
+                .collect(Collectors.joining(", "));
 
-            String name = cmds.get(i).getName();
-            String display = name == null ? "" : name.replace(" ", "");
-            sb.append("{g}").append(display).append("{reset}");
-            if (i < cmds.size() - 1) sb.append(", ");
-        }
-        sb.append(".");
-
-        MutableText message = CAT_FORMAT.format("Available commands: " + sb.toString());
+        MutableText message = CAT_FORMAT.format("Available commands: %s.", displayText);
         CHAT_MANAGER.sendPersistent(HelpCommand.class.getName(), message);
+    }
+
+    private String getDisplay(Command command) {
+        String display = command.getName().replace(" ", "");
+        return "{g}" + display + "{reset}";
     }
 }

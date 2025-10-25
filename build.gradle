@@ -81,7 +81,7 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:0.16.14"
     modImplementation "net.fabricmc.fabric-api:fabric-api:0.129.0+1.21.8"
     modImplementation("maven.modrinth:sodium:mc1.21.6-0.6.13-fabric") { transitive = false }
-    modImplementation ("com.github.cattyngmd.catformat:catformat-core:2.0.4")
+    modImplementation ("com.github.cattyngmd.catformat:catformat-core:2.1.0")
 
     shadowDeps project.configurations.modImplementation.filter {
         it.name.contains("catformat-core")

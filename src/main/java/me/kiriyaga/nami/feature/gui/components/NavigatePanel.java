@@ -1,12 +1,9 @@
 package me.kiriyaga.nami.feature.gui.components;
 
 import me.kiriyaga.nami.feature.gui.screen.ClickGuiScreen;
-import me.kiriyaga.nami.feature.gui.screen.HudEditorScreen;
 import me.kiriyaga.nami.feature.module.impl.client.ColorModule;
 import me.kiriyaga.nami.feature.module.impl.client.ClickGuiModule;
 import me.kiriyaga.nami.feature.gui.base.PanelRenderer;
-import me.kiriyaga.nami.feature.gui.base.GuiConstants;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -35,9 +32,7 @@ public class NavigatePanel {
         addScreen("Friends", FRIEND);
         this.colorModule = MODULE_MANAGER.getStorage().getByClass(ColorModule.class);
         this.clickGuiModule = MODULE_MANAGER.getStorage().getByClass(ClickGuiModule.class);
-        if (!screens.isEmpty()) {
-            activeKey = screens.keySet().iterator().next();
-        }
+        resetActive();
     }
 
     public void addScreen(String name, Screen screen) {
@@ -96,5 +91,10 @@ public class NavigatePanel {
             width += FONT_MANAGER.getWidth(key) + PADDING * 2;
         }
         return width;
+    }
+
+    public void resetActive() {
+        if (screens.isEmpty()) return;
+        activeKey = screens.keySet().iterator().next();
     }
 }

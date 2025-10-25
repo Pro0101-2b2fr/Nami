@@ -2,9 +2,11 @@ package me.kiriyaga.nami.mixin;
 
 import me.kiriyaga.nami.event.impl.ChatMessageEvent;
 import me.kiriyaga.nami.event.impl.ChunkDataEvent;
+import me.kiriyaga.nami.event.impl.WorldTimeUpdateEvent;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.network.packet.s2c.play.ChunkDataS2CPacket;
+import net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket;
 import net.minecraft.world.chunk.WorldChunk;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -37,5 +39,13 @@ public class MixinClientPlayNetworkHandler {
         if (chunk == null || chunk.isEmpty()) return;
 
         EVENT_MANAGER.post(new ChunkDataEvent(chunk));
+    }
+
+    @Inject(method = "onWorldTimeUpdate", at = @At("HEAD"), cancellable = true)
+    private void onWorldTimeUpdate(WorldTimeUpdateS2CPacket worldTimeUpdateS2CPacket, CallbackInfo ci) {
+        WorldTimeUpdateEvent event = new WorldTimeUpdateEvent();
+        EVENT_MANAGER.post(event);
+
+        if (event.isCancelled()) ci.cancel();
     }
 }

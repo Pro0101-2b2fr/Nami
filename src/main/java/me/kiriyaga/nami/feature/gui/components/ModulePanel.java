@@ -29,10 +29,12 @@ public class ModulePanel {
         this.expandedModules = expandedModules;
     }
 
-    public void render(DrawContext context, TextRenderer textRenderer, int x, int y, int mouseX, int mouseY) {
+    public void render(DrawContext context, TextRenderer textRenderer, int x, int y, int mouseX, int mouseY, String searchText) {
         boolean hovered = isHovered(mouseX, mouseY, x, y);
         boolean enabled = module.isEnabled();
         boolean expanded = expandedModules.contains(module);
+        boolean searched = !searchText.isEmpty() && module.getName().toLowerCase().contains(searchText.toLowerCase());
+        boolean dimmed = !searchText.isEmpty() && !searched;
 
         Color primary = getColorModule().getStyledGlobalColor();
         Color secondary = getColorModule().getStyledColor(getColorModule().getStyledSecondColor(), 0.90, 0.40);
@@ -48,8 +50,14 @@ public class ModulePanel {
             bgColor = new Color(30, 30, 30, 0);
         }
 
-        if (hovered) {
+        if (hovered && !dimmed) {
             bgColor = brighten(bgColor, 0.1f);
+        }
+
+        if (dimmed) {
+            bgColor = new Color(bgColor.getRed(), bgColor.getGreen(), bgColor.getBlue(), (int) (bgColor.getAlpha() * 0.2));
+            textCol = new Color(textCol.getRed(), textCol.getGreen(), textCol.getBlue(), (int) (textCol.getAlpha() * 0.2));
+            textColActivated = new Color(textColActivated.getRed(), textColActivated.getGreen(), textColActivated.getBlue(), (int) (textColActivated.getAlpha() * 0.2));
         }
 
         context.fill(
@@ -71,7 +79,7 @@ public class ModulePanel {
         }
 
         int textY = y + (HEIGHT - 8) / 2;
-        int baseTextX = x + PADDING + (hovered ? 1 : 0);
+        int baseTextX = x + PADDING + (hovered && !dimmed ? 1 : 0);
         FONT_MANAGER.drawText(
                 context,
                 module.getName(),
@@ -95,5 +103,25 @@ public class ModulePanel {
             if (current < target) current = target;
         }
         return current;
+    }
+
+    private Color brighten(Color color, float factor) {
+        int r = color.getRed();
+        int g = color.getGreen();
+        int b = color.getBlue();
+        int alpha = color.getAlpha();
+
+        int i = (int)(1.0/(1.0-factor));
+        if ( r == 0 && g == 0 && b == 0) {
+            return new Color(i, i, i, alpha);
+        }
+        if ( r > 0 && r < i ) r = i;
+        if ( g > 0 && g < i ) g = i;
+        if ( b > 0 && b < i ) b = i;
+
+        return new Color(Math.min((int)(r/factor), 255),
+                Math.min((int)(g/factor), 255),
+                Math.min((int)(b/factor), 255),
+                alpha);
     }
 }

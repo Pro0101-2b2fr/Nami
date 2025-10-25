@@ -13,16 +13,12 @@ import static me.kiriyaga.nami.Nami.*;
 
 public class WhitelistSetting extends BoolSetting {
     private final Set<Identifier> whitelist = new HashSet<>();
-    private final String moduleName;
-    private final String settingName;
     public enum Type { ANY, BLOCK, ITEM, ENTITY, SOUND, PARTICLE }
 
     private final Set<Type> allowedTypes = new HashSet<>();
 
-    public WhitelistSetting(String name, boolean defaultValue, String moduleName) {
+    public WhitelistSetting(String name, boolean defaultValue) {
         super(name, defaultValue);
-        this.moduleName = moduleName;
-        this.settingName = name;
 
         this.allowedTypes.add(Type.ANY);
 
@@ -33,8 +29,8 @@ public class WhitelistSetting extends BoolSetting {
 //        } catch (Exception ignored) {}
     }
 
-    public WhitelistSetting(String name, boolean defaultValue, String moduleName, Type... types) {
-        this(name, defaultValue, moduleName);
+    public WhitelistSetting(String name, boolean defaultValue, Type... types) {
+        this(name, defaultValue);
         this.allowedTypes.clear();
         if (types == null || types.length == 0) {
             this.allowedTypes.add(Type.ANY);

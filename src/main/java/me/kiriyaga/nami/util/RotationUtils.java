@@ -1,10 +1,14 @@
 package me.kiriyaga.nami.util;
 
+import me.kiriyaga.nami.feature.module.impl.client.PredictTestModule;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
 import static me.kiriyaga.nami.Nami.MC;
+import static me.kiriyaga.nami.Nami.MODULE_MANAGER;
 
 public class RotationUtils {
     public static int wrapDegrees(int angle) {
@@ -67,6 +71,16 @@ public class RotationUtils {
         return new Vec3d(x, y, z);
     }
 
+    public static Vec3d predictMotion(LivingEntity player) {
+        if (player == null) return Vec3d.ZERO;
+
+        PredictMovementUtils.PredictedEntity predicted = PredictMovementUtils.predict(
+                PredictMovementUtils.toPredicted(player), 1, t -> Vec3d.ZERO
+        );
+
+        return predicted.getEyePos();
+    }
+
     public static int getYawToVec(Entity from, Vec3d to) {
         double dx = to.x - from.getX();
         double dz = to.z - from.getZ();
@@ -79,6 +93,19 @@ public class RotationUtils {
         double dy = to.y - eyePos.y;
         double dz = to.z - eyePos.z;
         return (int) Math.round(-Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz))));
+    }
+
+    public static float getYawToVec(Vec3d from, Vec3d to) {
+        double dx = to.x - from.x;
+        double dz = to.z - from.z;
+        return (float) MathHelper.wrapDegrees(Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
+    }
+
+    public static float getPitchToVec(Vec3d from, Vec3d to) {
+        double dx = to.x - from.x;
+        double dy = to.y - from.y;
+        double dz = to.z - from.z;
+        return (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)));
     }
 
     public static Vec3d getLookVectorFromYawPitch(float yaw, float pitch) {

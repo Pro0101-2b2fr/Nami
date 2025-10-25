@@ -28,7 +28,7 @@ public class EntityListModule extends HudElementModule {
     private long lastUpdateTime = 0;
     private final long updateIntervalMs = 3000;
 
-    private final WhitelistSetting whitelist = addSetting(new WhitelistSetting("Whitelist", false, this.name, WhitelistSetting.Type.ENTITY));
+    private final WhitelistSetting whitelist = addSetting(new WhitelistSetting("Whitelist", false, WhitelistSetting.Type.ENTITY));
     public final EnumSetting<SortMode> sortMode = addSetting(new EnumSetting<>("Sort", SortMode.descending));
     public final BoolSetting onlyLiving = addSetting(new BoolSetting("OnlyLiving", false));
 

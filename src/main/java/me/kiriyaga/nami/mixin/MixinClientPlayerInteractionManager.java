@@ -7,6 +7,7 @@ import me.kiriyaga.nami.feature.module.impl.world.NoBreakDelayModule;
 import me.kiriyaga.nami.mixininterface.IClientPlayerInteractionManager;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
@@ -25,12 +26,39 @@ public abstract class MixinClientPlayerInteractionManager implements IClientPlay
     @Shadow
     private int blockBreakingCooldown;
 
+    private float savedYaw, savedPitch;
 
     @Shadow protected abstract void syncSelectedSlot();
 
     @Override
     public void updateSlot() {
         this.syncSelectedSlot();
+    }
+
+    @Inject(method = "interactItem", at = @At("HEAD"))
+    private void interactItem1(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
+        if (player != MC.player) return;
+        if (!ROTATION_MANAGER.getStateHandler().isRotating()) return;
+
+        savedYaw = player.getYaw();
+        savedPitch = player.getPitch();
+
+        float spoofYaw = ROTATION_MANAGER.getStateHandler().getRotationYaw();
+        float spoofPitch = ROTATION_MANAGER.getStateHandler().getRotationPitch();
+
+        player.setYaw(spoofYaw);
+        player.setPitch(spoofPitch);
+        player.setHeadYaw(ROTATION_MANAGER.getStateHandler().getRenderYaw());
+        player.setBodyYaw(ROTATION_MANAGER.getStateHandler().getRenderYaw());
+    }
+
+    @Inject(method = "interactItem", at = @At("RETURN"))
+    private void interactItem2(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
+        if (player != MC.player) return;
+        if (!ROTATION_MANAGER.getStateHandler().isRotating()) return;
+
+        player.setYaw(savedYaw);
+        player.setPitch(savedPitch);
     }
 
     @Inject(method = "attackBlock", at = @At("HEAD"), cancellable = true)

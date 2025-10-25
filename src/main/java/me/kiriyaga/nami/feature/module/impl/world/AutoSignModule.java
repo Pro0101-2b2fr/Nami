@@ -9,9 +9,14 @@ import me.kiriyaga.nami.feature.module.ModuleCategory;
 import me.kiriyaga.nami.feature.module.RegisterModule;
 import me.kiriyaga.nami.mixin.SignEditScreenAccessor;
 import me.kiriyaga.nami.feature.setting.impl.IntSetting;
+import me.kiriyaga.nami.feature.setting.impl.BoolSetting;
 import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.client.gui.screen.ingame.AbstractSignEditScreen;
 import net.minecraft.network.packet.c2s.play.UpdateSignC2SPacket;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 import static me.kiriyaga.nami.Nami.MC;
 
@@ -19,6 +24,7 @@ import static me.kiriyaga.nami.Nami.MC;
 public class AutoSignModule extends Module {
 
     private final IntSetting delay = addSetting(new IntSetting("Delay", 5, 1, 20));
+    private final BoolSetting timestamp = addSetting(new BoolSetting("Timestamp", false));
 
     private String[] cachedText = null;
     private AbstractSignEditScreen currentScreen = null;
@@ -58,12 +64,14 @@ public class AutoSignModule extends Module {
 
             SignBlockEntity sign = ((SignEditScreenAccessor) currentScreen).getSign();
 
+            String[] textToSend = cachedText.clone();
+            if (timestamp.get()) {
+                String date = new SimpleDateFormat("MM/dd/yyyy", Locale.US).format(new Date());
+                textToSend[3] = date;
+            }
+
             isReplacingPacket = true;
-            MC.player.networkHandler.sendPacket(new UpdateSignC2SPacket(
-                    sign.getPos(),
-                    packet.isFront(),
-                    cachedText[0], cachedText[1], cachedText[2], cachedText[3]
-            ));
+            MC.player.networkHandler.sendPacket(new UpdateSignC2SPacket(sign.getPos(), packet.isFront(), textToSend[0], textToSend[1], textToSend[2], textToSend[3]));
             isReplacingPacket = false;
 
             shouldFill = false;
@@ -81,7 +89,6 @@ public class AutoSignModule extends Module {
         }
     }
 
-    // TODO its not working lol
     @SubscribeEvent
     public void onPreTick(PreTickEvent ev) {
         if (shouldFill) {

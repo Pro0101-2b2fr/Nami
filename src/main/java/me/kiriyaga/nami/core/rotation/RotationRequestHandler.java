@@ -2,13 +2,14 @@ package me.kiriyaga.nami.core.rotation;
 
 import me.kiriyaga.nami.core.rotation.model.RotationRequest;
 import me.kiriyaga.nami.feature.module.impl.client.RotationModule;
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
-import static me.kiriyaga.nami.Nami.MODULE_MANAGER;
+import static me.kiriyaga.nami.Nami.*;
 
 /**
  * Request handler.
@@ -44,6 +45,14 @@ public class RotationRequestHandler {
      * USE STATIC REQUEST AND UPDATE DATA ON ANY PRE-TICK EVENT HIGHER THEN LOWEST
      */
     public void submit(RotationRequest request) {
+//        RotationModule.RotationMode mode = MODULE_MANAGER.getStorage().getByClass(RotationModule.class).rotation.get();
+
+        if (request.rotationMode == RotationModule.RotationMode.SILENT) {
+            performSilent(request);
+            stateHandler.setSilentSyncRequired(true);
+            return;
+        }
+
         requests.removeIf(r -> Objects.equals(r.id, request.id));
         requests.add(request);
         requests.sort(Comparator.comparingInt(r -> -r.priority));
@@ -85,6 +94,8 @@ public class RotationRequestHandler {
      * @return {@code true}, if yaw pitch is close enough to target
      */
     public boolean isCompleted(String id, float threshold) {
+        if (MODULE_MANAGER.getStorage().getByClass(RotationModule.class).rotation.get() == RotationModule.RotationMode.SILENT && stateHandler.getSilentSyncRequired())
+            return true; // TODO: find better solution
         return requests.stream()
                 .filter(r -> r.id.equals(id))
                 .findFirst()
@@ -103,6 +114,11 @@ public class RotationRequestHandler {
         if (!requests.isEmpty()) {
             requests.remove(0);
         }
+    }
+
+    public void clear() {
+        requests.clear();
+        lastActiveRequestId = null;
     }
 
     /**
@@ -138,5 +154,17 @@ public class RotationRequestHandler {
 
     public void setLastActiveId(String id) {
         lastActiveRequestId = id;
+    }
+
+    private void performSilent(RotationRequest req) {
+        float targetYaw = req.targetYaw;
+        float targetPitch = req.targetPitch;
+
+//        ROTATION_MANAGER.getStateHandler().setRotationYaw(targetYaw);
+//        ROTATION_MANAGER.getStateHandler().setRotationPitch(targetPitch);
+        ROTATION_MANAGER.getStateHandler().setServerYaw(targetYaw);
+        ROTATION_MANAGER.getStateHandler().setServerPitch(targetPitch);
+
+        MC.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(MC.player.getX(), MC.player.getY(), MC.player.getZ(), targetYaw, targetPitch, MC.player.isOnGround(), true));
     }
 }

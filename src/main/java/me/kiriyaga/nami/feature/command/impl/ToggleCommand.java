@@ -1,6 +1,6 @@
 package me.kiriyaga.nami.feature.command.impl;
 
-import me.kiriyaga.nami.core.executable.model.ExecutableEventType;
+import me.kiriyaga.nami.core.executable.model.ExecutableThreadType;
 import me.kiriyaga.nami.feature.command.Command;
 import me.kiriyaga.nami.feature.command.RegisterCommand;
 import me.kiriyaga.nami.feature.command.CommandArgument;
@@ -37,6 +37,6 @@ public class ToggleCommand extends Command {
             return;
         }
 
-        EXECUTABLE_MANAGER.getRequestHandler().submit(found::toggle, 2, ExecutableEventType.PRE_TICK);
+        EXECUTABLE_MANAGER.getRequestHandler().submit(found::toggle, 2, ExecutableThreadType.PRE_TICK);
     }
 }

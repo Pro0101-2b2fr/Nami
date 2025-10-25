@@ -190,4 +190,22 @@ public abstract class CommandArgument {
             return input;
         }
     }
+
+    public static class OnlinePlayerArg extends StringArg {
+        public OnlinePlayerArg(String name) {
+            super(name);
+        }
+    }
+
+    public static class FriendArg extends StringArg {
+        public FriendArg(String name) {
+            super(name);
+        }
+    }
+
+    public static class FriendNameArg extends StringArg {
+        public FriendNameArg(String name, int minLength, int maxLength) {
+            super(name, minLength, maxLength);
+        }
+    }
 }

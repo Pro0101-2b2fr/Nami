@@ -1,5 +1,8 @@
 package me.kiriyaga.nami.feature.module.impl.visuals;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import me.kiriyaga.nami.core.executable.model.ExecutableThreadType;
 import me.kiriyaga.nami.event.SubscribeEvent;
 import me.kiriyaga.nami.event.impl.Render3DEvent;
 import me.kiriyaga.nami.feature.module.ModuleCategory;
@@ -13,23 +16,27 @@ import me.kiriyaga.nami.util.render.RenderUtil;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.Tameable;
+import net.minecraft.entity.*;
+import net.minecraft.entity.passive.TameableEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.thrown.EnderPearlEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL32C;
 
 import java.awt.*;
-import java.util.Arrays;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.*;
 import java.util.List;
 
 import static me.kiriyaga.nami.Nami.*;
+import static net.caffeinemc.mods.sodium.client.util.FlawlessFrames.isActive;
 
 @RegisterModule
 public class NametagsModule extends Module {
@@ -58,8 +65,10 @@ public class NametagsModule extends Module {
         NONE, BOLD, ITALIC, BOTH
     }
 
+    private static final Map<UUID, String> uuid = new HashMap<>();
+
     public NametagsModule() {
-        super("Nametags", "Draws nametags above certain entities.", ModuleCategory.of("Visuals"));
+        super("Nametags", "Draws nametags above certain entities.", ModuleCategory.of("Render"));
     }
 
     @SubscribeEvent
@@ -116,15 +125,82 @@ public class NametagsModule extends Module {
         }
 
         if (tamed.get()) {
-            for (var entity : ENTITY_MANAGER.getAllEntities()) {
-                if (entity instanceof Tameable tameable){
-                    if (tameable.getOwner() == null) continue;
-                    i++;
-                    renderEntityNametag(entity, tameable.getOwner().getName().getString(), event.getTickDelta(), matrices, 30, null);
 
+            for (var entity : ENTITY_MANAGER.getAllEntities()) {
+
+                @Nullable LazyEntityReference<LivingEntity> owner;
+
+                if (entity instanceof TameableEntity tameable) {
+                    owner = tameable.getOwnerReference();
+                } else {
+                    continue;
                 }
+
+                if (owner == null)
+                    return;
+
+                UUID uuid = owner.getUuid();
+
+                String ownerName;
+
+                if (NametagsModule.uuid.containsKey(uuid)) {
+                    ownerName = NametagsModule.uuid.get(uuid);
+                } else {
+                    ownerName = "Owned by ";
+
+                    EXECUTABLE_MANAGER.getRequestHandler().submit(() -> {
+
+                        if (isActive()) {
+                            try {
+                                String urlStr = "https://sessionserver.mojang.com/session/minecraft/profile/" + uuid.toString().replace("-", "");
+                                URL url = new URL(urlStr);
+                                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                                connection.setRequestMethod("GET");
+                                connection.setConnectTimeout(5000);
+                                connection.setReadTimeout(5000);
+
+                                int status = connection.getResponseCode();
+
+                                if (status == 200) {
+                                    BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                                    StringBuilder responseBuilder = new StringBuilder();
+                                    String line;
+                                    while ((line = reader.readLine()) != null) {
+                                        responseBuilder.append(line);
+                                    }
+                                    reader.close();
+
+                                    String response = responseBuilder.toString();
+
+                                    if (response != null && !response.isEmpty()) {
+                                        JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+                                        if (json.has("name")) {
+                                            String name = json.get("name").getAsString();
+                                            NametagsModule.uuid.put(uuid, name);
+                                        } else {
+                                            NametagsModule.uuid.put(uuid, "Failed to get name");
+                                        }
+                                    } else {
+                                        NametagsModule.uuid.put(uuid, "Failed to get name");
+                                    }
+                                } else {
+                                    NametagsModule.uuid.put(uuid, "Failed to get name");
+                                }
+
+                                connection.disconnect();
+                            } catch (Exception e) {
+                                NametagsModule.uuid.put(uuid, "Failed to get name");
+                            }
+                        } else {
+                        }
+                    }, 0, ExecutableThreadType.ASYNC);
+                }
+
+                i++;
+                renderEntityNametag(entity, "Owned by " + ownerName, event.getTickDelta(), matrices, 30, null);
             }
-        }
+    }
+
 
         if (pearls.get()) {
             for (var entity : ENTITY_MANAGER.getAllEntities()) {

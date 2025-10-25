@@ -1,6 +1,6 @@
 package me.kiriyaga.nami.feature.command.impl;
 
-import me.kiriyaga.nami.core.executable.model.ExecutableEventType;
+import me.kiriyaga.nami.core.executable.model.ExecutableThreadType;
 import me.kiriyaga.nami.feature.command.Command;
 import me.kiriyaga.nami.feature.command.CommandArgument;
 import me.kiriyaga.nami.feature.command.RegisterCommand;
@@ -35,6 +35,6 @@ public class PeekCommand extends Command {
             if (MC.targetedEntity instanceof ItemFrameEntity entity) {
                 ContainerUtils.openContainer(entity.getHeldItemStack());
             }
-        }, 5, ExecutableEventType.PRE_TICK);
+        }, 5, ExecutableThreadType.PRE_TICK);
     }
 }

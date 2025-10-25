@@ -21,7 +21,7 @@ public class ViewClipModule extends Module {
     private float currentDistance = 3.5f;
 
     public ViewClipModule() {
-        super("ViewClip", "Disables block clipping and extends camera distance.", ModuleCategory.of("Visuals"), "viewclip");
+        super("ViewClip", "Disables block clipping and extends camera distance.", ModuleCategory.of("Render"), "viewclip");
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)

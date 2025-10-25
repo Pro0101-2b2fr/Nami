@@ -24,8 +24,8 @@ public class NametagFormatter {
     public static final Color COLOR_NEUTRAL = new Color(255, 255, 0, 255);
     public static final Color COLOR_HOSTILE = new Color(255, 0, 0, 255);
     public static final Color COLOR_ITEM = new Color(211, 211, 211, 255);
-    public static final Color COLOR_FRIEND = new Color(255, 165, 0, 255);
-    public static final Color COLOR_SNEAK = new Color(0, 170, 170, 255);
+    public static final Color COLOR_FRIEND = new Color(0, 170, 170, 255);
+    public static final Color COLOR_SNEAK = new Color(255, 165, 0, 255);
 
     public NametagFormatter(NametagsModule module) {
         this.module = module;

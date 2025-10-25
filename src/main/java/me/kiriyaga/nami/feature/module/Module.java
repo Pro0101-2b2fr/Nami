@@ -55,15 +55,18 @@ public abstract class Module {
             EVENT_MANAGER.register(this);
             onEnable();
 
-            Text message = CAT_FORMAT.format("{s}[{g}+{s}] {reset}" + name);
-            CHAT_MANAGER.sendTransient(message, false);
-
+            if (MC.world != null) {
+                Text message = CAT_FORMAT.format("{s}[{g}+{s}] {reset}" + name);
+                CHAT_MANAGER.sendTransient(message, false);
+            }
         } else {
             EVENT_MANAGER.unregister(this);
             onDisable();
 
-            Text message = CAT_FORMAT.format("{namiDarkRed}[{namiRed}-{namiDarkRed}] {reset}" + name);
-            CHAT_MANAGER.sendTransient(message, false);
+            if (MC.world != null) {
+                Text message = CAT_FORMAT.format("{namiDarkRed}[{namiRed}-{namiDarkRed}] {reset}" + name);
+                CHAT_MANAGER.sendTransient(message, false);
+            }
         }
     }
 

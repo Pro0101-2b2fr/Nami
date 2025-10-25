@@ -1,0 +1,9 @@
+{
+  "required": false,
+  "package": "me.kiriyaga.nami.mixin.sodium",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "me.kiriyaga.nami.mixin.MixinPlugin",
+  "client": [
+    "MixinSodiumWorldRenderer"
+  ]
+}

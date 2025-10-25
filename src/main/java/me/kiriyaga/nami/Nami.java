@@ -1,6 +1,5 @@
 package me.kiriyaga.nami;
 
-import me.kiriyaga.nami.core.breaking.BreakManager;
 import me.kiriyaga.nami.core.cat.FabricCatFormat;
 import me.kiriyaga.nami.core.command.CommandManager;
 import me.kiriyaga.nami.core.config.ConfigManager;
@@ -9,9 +8,12 @@ import me.kiriyaga.nami.core.font.FontManager;
 import me.kiriyaga.nami.core.inventory.InventoryManager;
 import me.kiriyaga.nami.core.macro.MacroManager;
 import me.kiriyaga.nami.core.rotation.RotationManager;
+import me.kiriyaga.nami.feature.gui.components.NavigatePanel;
 import me.kiriyaga.nami.feature.gui.screen.ClickGuiScreen;
 import me.kiriyaga.nami.core.*;
 import me.kiriyaga.nami.core.module.ModuleManager;
+import me.kiriyaga.nami.feature.gui.screen.FriendScreen;
+import me.kiriyaga.nami.feature.gui.screen.HudEditorScreen;
 import me.kiriyaga.nami.util.CatStyles;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
@@ -47,6 +49,7 @@ public class Nami implements ClientModInitializer {
     public static final ModuleManager MODULE_MANAGER = new ModuleManager();
     public static final FontManager FONT_MANAGER = new FontManager();
     public static final EntityManager ENTITY_MANAGER = new EntityManager();
+    public static final ExecutableManager EXECUTABLE_MANAGER = new ExecutableManager();
     public static final CommandManager COMMAND_MANAGER = new CommandManager();
     public static final ChatManager CHAT_MANAGER = new ChatManager();
     public static final FriendManager FRIEND_MANAGER = new FriendManager(CONFIG_MANAGER);
@@ -54,11 +57,14 @@ public class Nami implements ClientModInitializer {
     public static final TickRateManager TICK_MANAGER = new TickRateManager();
     public static final RotationManager ROTATION_MANAGER = new RotationManager();
     public static final InventoryManager INVENTORY_MANAGER = new InventoryManager();
-    public static final BreakManager BREAK_MANAGER = new BreakManager();
-    public static final ExecutableManager EXECUTABLE_MANAGER = new ExecutableManager();
+    public static final FlagManager FLAG_MANAGER = new FlagManager();
+
     public static Pair<ServerAddress, ServerInfo> LAST_CONNECTION = null;
     public static FabricCatFormat CAT_FORMAT = new FabricCatFormat();
     public static ClickGuiScreen CLICK_GUI;
+    public static HudEditorScreen HUD_EDITOR;
+    public static FriendScreen FRIEND;
+    public static NavigatePanel NAVIGATE_PANEL;
 
 
 
@@ -73,12 +79,16 @@ public class Nami implements ClientModInitializer {
         ROTATION_MANAGER.init();
         ENTITY_MANAGER.init();
         INVENTORY_MANAGER.init();
-        BREAK_MANAGER.init();
         EXECUTABLE_MANAGER.init();
+        FLAG_MANAGER.init();
         CHAT_MANAGER.init();
 
         CAT_FORMAT.add(new CatStyles());
+
         CLICK_GUI = new ClickGuiScreen();
+        HUD_EDITOR = new HudEditorScreen();
+        FRIEND = new FriendScreen();
+        NAVIGATE_PANEL = new NavigatePanel();
 
         FRIEND_MANAGER.load();
 

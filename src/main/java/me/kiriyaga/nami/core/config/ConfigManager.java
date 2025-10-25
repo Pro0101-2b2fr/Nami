@@ -20,11 +20,6 @@ public class ConfigManager {
     private final ConfigSerializer configSerializer = new ConfigSerializer(dirProvider);
     private final FriendStorage friendStorage = new FriendStorage(dirProvider);
     private final MacroStorage macroStorage = new MacroStorage(dirProvider);
-    private final PrinterStorage printerStorage = new PrinterStorage(dirProvider);
-
-    public PrinterStorage getPrinterStorage() {
-        return printerStorage;
-    }
 
     public ConfigDirectoryProvider getDirectoryProvider() {
         return dirProvider;

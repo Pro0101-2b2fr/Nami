@@ -10,7 +10,7 @@ import me.kiriyaga.nami.feature.module.impl.visuals.ESPModule;
 import me.kiriyaga.nami.feature.module.impl.world.AirPlaceModule;
 import me.kiriyaga.nami.feature.module.impl.world.AutoEatModule;
 import me.kiriyaga.nami.feature.module.impl.world.FastPlaceModule;
-import me.kiriyaga.nami.feature.module.impl.world.NoHitDelayModule;
+import me.kiriyaga.nami.feature.module.impl.combat.NoHitDelayModule;
 import me.kiriyaga.nami.feature.setting.impl.KeyBindSetting;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;

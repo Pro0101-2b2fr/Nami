@@ -12,6 +12,7 @@ import me.kiriyaga.nami.util.InputCache;
 import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.screen.ingame.*;
 import net.minecraft.client.option.KeyBinding;
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.util.math.MathHelper;
 import org.lwjgl.glfw.GLFW;
 
@@ -69,6 +70,15 @@ public class RotationTickHandler {
         interpolateRenderRotation();
 
         RotationRequest active = requestHandler.getActiveRequest();
+        if (module.rotation.get() == RotationModule.RotationMode.SILENT && stateHandler.getSilentSyncRequired()) {
+            //performSilent(active); // actually this can be skipped if we somehow simulate client rotation packet sending idk
+            //stateHandler.setSilentSyncRequired(false);
+            //resetRotationToReal();
+            requestHandler.clear();
+            returning = false;
+            return;
+        }
+
         if (active != null) {
             processRequest(active);
         } else if (returning) {
@@ -313,6 +323,24 @@ public class RotationTickHandler {
         }
 
         return true;
+    }
+
+    private void performSilent(RotationRequest req) {
+        float targetYaw = MC.player.getYaw();
+        float targetPitch = MC.player.getPitch();
+        // AimModulo360 seems fixable here but due to race condition it fucks a little bit screen, maybe ill fix it someday but now we just left it with flag
+//        ROTATION_MANAGER.getStateHandler().setRotationYaw(targetYaw);
+//        ROTATION_MANAGER.getStateHandler().setRotationPitch(targetPitch);
+        ROTATION_MANAGER.getStateHandler().setServerYaw(targetYaw);
+        ROTATION_MANAGER.getStateHandler().setServerPitch(targetPitch);
+//
+//        returning = false;
+//        stateHandler.updateRealRotation(targetYaw, stateHandler.getRealPitch());
+//        MC.player.setYaw(targetYaw);
+//        requestHandler.clearLastActiveId();
+//        requestHandler.removeActiveRequest();
+
+        MC.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(MC.player.getX(), MC.player.getY(), MC.player.getZ(), targetYaw, targetPitch, MC.player.isOnGround(), true));
     }
 
     private float yawDifference(float targetYaw, float currentYaw) {

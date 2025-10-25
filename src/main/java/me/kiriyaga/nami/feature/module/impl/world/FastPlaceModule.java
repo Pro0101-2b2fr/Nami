@@ -11,8 +11,8 @@ public class FastPlaceModule extends Module {
 
     public final IntSetting delay = addSetting(new IntSetting("Delay", 1, 0, 5));
     public final IntSetting startDelay = addSetting(new IntSetting("StartDelay", 10, 0, 50));
-    public final WhitelistSetting whitelist = addSetting(new WhitelistSetting("WhiteList", false, this.name, WhitelistSetting.Type.ITEM));
-    public final WhitelistSetting blacklist = addSetting(new WhitelistSetting("BlackList", false, this.name, WhitelistSetting.Type.ITEM));
+    public final WhitelistSetting whitelist = addSetting(new WhitelistSetting("WhiteList", false, WhitelistSetting.Type.ANY));
+    public final WhitelistSetting blacklist = addSetting(new WhitelistSetting("BlackList", false, WhitelistSetting.Type.ANY));
 
     public FastPlaceModule() {
         super("FastPlace", "Decreases cooldown between any type of use.", ModuleCategory.of("World"), "fastplace");

@@ -18,10 +18,10 @@ import static me.kiriyaga.nami.Nami.*;
 @RegisterModule
 public class NoSlowModule extends Module {
     public enum SlowMode {
-        VANILLA, ACCEL
+        VANILLA, GRIMV3
     }
 
-    public final EnumSetting<SlowMode> mode = addSetting(new EnumSetting<>("Mode", SlowMode.ACCEL));
+    public final EnumSetting<SlowMode> mode = addSetting(new EnumSetting<>("Mode", SlowMode.VANILLA));
     public final BoolSetting fastCrawl = addSetting(new BoolSetting("FastCrawl", false));
     //private final BoolSetting fastWeb = addSetting(new BoolSetting("fast web", false));
     private final BoolSetting onlyOnGround = addSetting(new BoolSetting("OnlyOnGround", true));
@@ -45,7 +45,7 @@ public class NoSlowModule extends Module {
         }
 
         boolean boost = true; //cattyngmd
-        if (mode.get() == SlowMode.ACCEL){
+        if (mode.get() == SlowMode.GRIMV3){
             boost = MC.player.age % 3 == 0 || MC.player.age % 4 == 0;
             //if (MC.player.age % 12 == 0) boost = false;
 

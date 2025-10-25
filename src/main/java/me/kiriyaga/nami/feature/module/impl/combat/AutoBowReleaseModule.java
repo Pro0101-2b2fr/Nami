@@ -10,17 +10,19 @@ import me.kiriyaga.nami.feature.setting.impl.IntSetting;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
+import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
 import static me.kiriyaga.nami.Nami.*;
+import static me.kiriyaga.nami.util.PacketUtils.sendSequencedPacket;
 
 @RegisterModule
 public class AutoBowReleaseModule extends Module {
     public enum TpsMode {NONE, LATEST, AVERAGE}
 
-    private final IntSetting ticks = addSetting(new IntSetting("Delay", 3, 1, 21));
+    private final IntSetting ticks = addSetting(new IntSetting("Delay", 3, 0, 25));
     private final EnumSetting<TpsMode> tpsMode = addSetting(new EnumSetting<>("TPS", TpsMode.NONE));
 
     private float ticker = 0f;
@@ -56,7 +58,8 @@ public class AutoBowReleaseModule extends Module {
                     new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, Direction.DOWN)
             );
             MC.player.stopUsingItem();
-            MC.interactionManager.interactItem(MC.player, Hand.MAIN_HAND);
+            sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(MC.player.getActiveHand(), id, ROTATION_MANAGER.getStateHandler().getServerYaw(), ROTATION_MANAGER.getStateHandler().getServerPitch()));
+
         }
     }
 }

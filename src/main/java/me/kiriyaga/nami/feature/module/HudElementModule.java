@@ -31,7 +31,7 @@ public abstract class HudElementModule extends Module {
     public record ItemElement(ItemStack stack, int offsetX, int offsetY) {}
 
     public HudElementModule(String name, String description, int defaultX, int defaultY, int width, int height) {
-        super(name, description, ModuleCategory.of("hud"));
+        super(name, description, ModuleCategory.of("HUD"));
 
         this.width = width;
         this.height = height;
@@ -40,9 +40,9 @@ public abstract class HudElementModule extends Module {
         this.x.setShow(false);
         this.y = addSetting(new DoubleSetting("y", defaultY, 0, 1));
         this.y.setShow(false);
-        this.label = addSetting(new EnumSetting<LabelPosition>("label position", LabelPosition.TOP));
+        this.label = addSetting(new EnumSetting<LabelPosition>("Label", LabelPosition.TOP));
         this.label.setShow(false);
-        this.alignment = addSetting(new EnumSetting<>("alignment", HudAlignment.LEFT));
+        this.alignment = addSetting(new EnumSetting<>("Alignment", HudAlignment.LEFT));
     }
 
     public Text getDisplayText() {

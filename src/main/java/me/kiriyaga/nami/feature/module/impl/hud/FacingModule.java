@@ -46,9 +46,9 @@ public class FacingModule extends HudElementModule {
         String axisPart;
 
         if (absDx > 0.2 && absDz > 0.2 && Math.abs(absDx - absDz) < 0.4) {
-            String axis1 = dz > 0 ? "+Z" : "-Z";
-            String axis2 = dx > 0 ? "+X" : "-X";
-            axisPart = formatAxis(axis1) + "{bg}, {bg} " + formatAxis(axis2);
+            String axisX = dx > 0 ? "+X" : "-X";
+            String axisZ = dz > 0 ? "+Z" : "-Z";
+            axisPart = formatAxis(axisX) + "{bg}, {bg} " + formatAxis(axisZ);
         } else {
             if (absDz > absDx) {
                 String axis = dz > 0 ? "+Z" : "-Z";

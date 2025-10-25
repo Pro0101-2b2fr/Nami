@@ -19,6 +19,7 @@ import net.minecraft.item.*;
 import java.util.*;
 
 import static me.kiriyaga.nami.Nami.*;
+import static me.kiriyaga.nami.util.InventoryUtils.isBroken;
 
 @RegisterModule
 public class AutoArmorModule extends Module {
@@ -205,10 +206,10 @@ public class AutoArmorModule extends Module {
     private ItemStack findBestArmor(EquipmentSlot slot, ItemStack current) {
         List<ItemStack> candidates = findCandidatesForSlot(slot, false);
         if (slot == EquipmentSlot.CHEST && elytraPriority.get()) {
-            boolean wearingElytra = current.getItem() == Items.ELYTRA && !isBroken(current);
+            boolean wearingElytra = current.getItem() == Items.ELYTRA && !isBroken(current, damageThreshold.get());
             if (wearingElytra) return null;
             for (ItemStack stack : candidates) {
-                if (stack.getItem() == Items.ELYTRA && !isBroken(stack) && !hasCurse(stack)) return stack;
+                if (stack.getItem() == Items.ELYTRA && !isBroken(stack, damageThreshold.get()) && !hasCurse(stack)) return stack;
             }
         }
         return chooseBest(candidates, current);
@@ -302,13 +303,5 @@ public class AutoArmorModule extends Module {
         if (item == Items.GOLDEN_HELMET || item == Items.GOLDEN_CHESTPLATE || item == Items.GOLDEN_LEGGINGS || item == Items.GOLDEN_BOOTS) return 2;
         if (item == Items.LEATHER_HELMET || item == Items.LEATHER_CHESTPLATE || item == Items.LEATHER_LEGGINGS || item == Items.LEATHER_BOOTS) return 1;
         return 0;
-    }
-
-    private boolean isBroken(ItemStack stack) {
-        if (!stack.isDamageable()) return false;
-        int max = stack.getMaxDamage();
-        int damage = stack.getDamage();
-        int percentRemaining = (int) (((max - damage) / (float) max) * 100);
-        return percentRemaining <= damageThreshold.get();
     }
 }

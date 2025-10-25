@@ -7,6 +7,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import me.kiriyaga.nami.feature.command.Command;
 import me.kiriyaga.nami.feature.command.CommandArgument;
 import me.kiriyaga.nami.feature.module.Module;
@@ -39,11 +40,26 @@ public class CommandSuggester {
     private final List<String> particleIdCache = new ArrayList<>();
     private final List<String> keyNameCache = new ArrayList<>();
     private final List<String> configNameCache = new ArrayList<>();
+    private final List<String> playerListCache = new java.util.concurrent.CopyOnWriteArrayList<>();
     private boolean identifierCacheBuilt = false;
     private static final int SUGGESTION_LIMIT = 200;
 
     public CommandSuggester(CommandStorage storage) {
         this.storage = storage;
+        EXECUTABLE_MANAGER.getRequestHandler().submitRepeating(() -> {
+            if (MC.getNetworkHandler() == null) {
+                if (!playerListCache.isEmpty()) playerListCache.clear();
+                return;
+            }
+            List<String> currentNames = MC.getNetworkHandler().getPlayerList()
+                    .stream()
+                    .map(p -> p.getProfile().getName())
+                    .toList();
+            if (!playerListCache.equals(currentNames)) {
+                playerListCache.clear();
+                playerListCache.addAll(currentNames);
+            }
+        }, 20, me.kiriyaga.nami.core.executable.model.ExecutableThreadType.PRE_TICK);
     }
 
     private synchronized void ensureIdentifierCache() {
@@ -338,6 +354,47 @@ public class CommandSuggester {
                         });
                     }
 
+                    if (arg instanceof CommandArgument.OnlinePlayerArg) {
+                        argBuilder.suggests((context, suggestionBuilder) -> {
+                            String rem = suggestionBuilder.getRemaining().toLowerCase(Locale.ROOT);
+                            for (String name : playerListCache) {
+                                if (name.toLowerCase(Locale.ROOT).startsWith(rem)) {
+                                    suggestionBuilder.suggest(name);
+                                }
+                            }
+                            return suggestionBuilder.buildFuture();
+                        });
+                    }
+
+                    if (arg instanceof CommandArgument.FriendArg) {
+                        argBuilder.suggests((context, suggestionBuilder) -> {
+                            suggestFriends(suggestionBuilder);
+                            return suggestionBuilder.buildFuture();
+                        });
+                    }
+
+                    if (arg instanceof CommandArgument.FriendNameArg) {
+                        argBuilder.suggests((context, suggestionBuilder) -> {
+                            String input = context.getInput();
+                            String[] parts = input.split("\\s+");
+                            String rem = suggestionBuilder.getRemaining().toLowerCase(Locale.ROOT);
+
+                            if (parts.length > 1) {
+                                String action = parts[1].toLowerCase(Locale.ROOT);
+                                if (action.equals("add")) {
+                                    for (String name : playerListCache) {
+                                        if (name.toLowerCase(Locale.ROOT).startsWith(rem)) {
+                                            suggestionBuilder.suggest(name);
+                                        }
+                                    }
+                                } else if (action.equals("del")) {
+                                    suggestFriends(suggestionBuilder);
+                                }
+                            }
+                            return suggestionBuilder.buildFuture();
+                        });
+                    }
+
                     if (argumentChain == null) {
                         argBuilder.executes(context -> 1);
                     } else {
@@ -350,6 +407,15 @@ public class CommandSuggester {
 
             dispatcher.register(builder);
         }
+    }
+
+    private void suggestFriends(SuggestionsBuilder suggestionBuilder) {
+        String rem = suggestionBuilder.getRemaining().toLowerCase(Locale.ROOT);
+        FRIEND_MANAGER.getFriends().forEach(f -> {
+            if (f.toLowerCase(Locale.ROOT).startsWith(rem)) {
+                suggestionBuilder.suggest(f);
+            }
+        });
     }
 
     private ArgumentType<?> toBrigadierArgument(CommandArgument arg, boolean isLast) {

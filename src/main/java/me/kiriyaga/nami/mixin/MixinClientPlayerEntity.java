@@ -3,9 +3,9 @@ package me.kiriyaga.nami.mixin;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import me.kiriyaga.nami.event.impl.*;
 import me.kiriyaga.nami.feature.module.impl.client.DebugModule;
+import me.kiriyaga.nami.feature.module.impl.client.RotationModule;
 import me.kiriyaga.nami.feature.module.impl.movement.NoSlowModule;
 import me.kiriyaga.nami.feature.module.impl.visuals.NoRenderModule;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.LivingEntity;
@@ -26,11 +26,9 @@ import static me.kiriyaga.nami.Nami.*;
 @Mixin(ClientPlayerEntity.class)
 public abstract class MixinClientPlayerEntity {
 
-    @Shadow
-    protected MinecraftClient client;
-
     @Shadow public abstract void move(MovementType type, Vec3d movement);
 
+    private float originalSilentPitch;
     private float originalYaw, originalPitch;
 
     @Inject(method = "tick", at = @At("HEAD"))
@@ -113,6 +111,28 @@ public abstract class MixinClientPlayerEntity {
         MC.player.setPitch(originalPitch);
     }
 
+    // Do not ask me exactly why is it so weird, it just works
+    // overall silent rotations sucks, another super cool bypass, works really weirdly
+    // i hope it gets fucking patched in 1.22/1.23
+    @Inject(method = "sendMovementPackets", at = @At("HEAD"))
+    private void sendMovementPackets1(CallbackInfo ci) {
+        if (MODULE_MANAGER.getStorage().getByClass(RotationModule.class).rotation.get() == RotationModule.RotationMode.SILENT
+        && ROTATION_MANAGER.getStateHandler().getSilentSyncRequired()) {
+            this.originalSilentPitch = MC.player.getPitch();
+            this.lastPitchClient = -9999;
+            MC.player.setPitch(this.originalSilentPitch + 1f);
+        }
+    }
+
+    @Inject(method = "sendMovementPackets", at = @At("RETURN"))
+    private void sendMovementPackets2(CallbackInfo ci) {
+        if (MODULE_MANAGER.getStorage().getByClass(RotationModule.class).rotation.get() == RotationModule.RotationMode.SILENT
+                && ROTATION_MANAGER.getStateHandler().getSilentSyncRequired()) {
+            MC.player.setPitch(this.originalSilentPitch);
+            ROTATION_MANAGER.getStateHandler().setSilentSyncRequired(false);
+        }
+    }
+
     @Inject(method = "applyMovementSpeedFactors", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/Vec2f;multiply(F)Lnet/minecraft/util/math/Vec2f;", ordinal = 1), cancellable = true)    private void onApplyMovementSpeedFactors(Vec2f vec2f, CallbackInfoReturnable<Vec2f> cir) {
         LivingEntity self = (LivingEntity)(Object)this;
 
@@ -131,6 +151,8 @@ public abstract class MixinClientPlayerEntity {
     private static Vec2f applyDirectionalMovementSpeedFactors(Vec2f vec2f) {
         throw new AssertionError();
     }
+
+    @Shadow private float lastPitchClient;
 
     @Inject(method = "shouldSlowDown", at = @At("HEAD"), cancellable = true)
     private void shouldSlowDown(CallbackInfoReturnable<Boolean> info) {

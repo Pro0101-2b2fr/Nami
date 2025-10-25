@@ -60,7 +60,7 @@ public class ShulkerViewModule extends Module {
     private int button = -1;
 
     public ShulkerViewModule() {
-        super("ShulkerView", "Improves shulker managment. Author @cattyngmd", ModuleCategory.of("Visuals"),"shulkerview");
+        super("ShulkerView", "Improves shulker management.", ModuleCategory.of("Render"),"shulkerview");
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)

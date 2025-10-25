@@ -5,7 +5,7 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import me.kiriyaga.nami.event.impl.PacketReceiveEvent;
 import me.kiriyaga.nami.event.impl.PacketSendEvent;
-import me.kiriyaga.nami.feature.module.impl.misc.NoPacketKick;
+import me.kiriyaga.nami.feature.module.impl.miscellaneous.NoPacketKick;
 import net.minecraft.network.ClientConnection;
 import net.minecraft.network.NetworkSide;
 import net.minecraft.network.listener.PacketListener;

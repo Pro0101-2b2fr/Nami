@@ -35,6 +35,11 @@ public class RotationStateHandler {
      */
     private float serverDeltaYaw;
 
+    /**
+     * Is it required to restore silent rotation yaw pitch on latest pre tick
+     */
+    private boolean silentSyncRequired;
+
     public void updateRealRotation(float yaw, float pitch) {
         realYaw = yaw;
         realPitch = MathHelper.clamp(pitch, -90f, 90f);
@@ -70,6 +75,9 @@ public class RotationStateHandler {
 
     public float getServerDeltaYaw() {return serverDeltaYaw;}
     public void setServerDeltaYaw(float deltaYaw) {this.serverDeltaYaw = deltaYaw;}
+
+    public boolean getSilentSyncRequired() { return silentSyncRequired; }
+    public void setSilentSyncRequired(boolean silentSyncRequired) {this.silentSyncRequired = silentSyncRequired;}
 
     public static float wrapDegrees(float angle) {
         angle %= 360f;

@@ -1,6 +1,6 @@
 package me.kiriyaga.nami.mixin;
 
-import me.kiriyaga.nami.feature.module.impl.misc.AutoReconnectModule;
+import me.kiriyaga.nami.feature.module.impl.miscellaneous.AutoReconnectModule;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.DisconnectedScreen;
 import net.minecraft.client.gui.screen.Screen;

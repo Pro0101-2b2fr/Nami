@@ -21,30 +21,32 @@ public class ClasspathScanner {
         try {
             // Always scan within our own package. Scanning the entire classpath is slow and error-prone.
             String resourcePath = "me/kiriyaga/nami";
-
             Enumeration<URL> resources = Thread.currentThread().getContextClassLoader().getResources(resourcePath);
-
             while (resources.hasMoreElements()) {
                 URL url = resources.nextElement();
-                String filePath = URLDecoder.decode(url.getFile(), "UTF-8");
-
-                if (filePath.startsWith("file:") && filePath.contains("!")) {
-                    String[] split = filePath.split("!");
-                    try (JarFile jar = new JarFile(split[0].substring("file:".length()))) {
-                        result.addAll(scanJar(jar, baseClass, annotation));
-                    }
-                } else {
-                    File dir = new File(filePath);
+                String protocol = url.getProtocol();
+                if ("file".equals(protocol)) {
+                    File dir = new File(url.toURI());
                     if (dir.exists() && dir.isDirectory()) {
-                        // Start scanning from the correct base package name
                         result.addAll(scanDirectory(dir, "me.kiriyaga.nami", baseClass, annotation));
+                    }
+                } else if ("jar".equals(protocol)) {
+                    String path = url.getPath();
+                    int bangIndex = path.indexOf("!");
+                    if (bangIndex != -1) {
+                        String jarFile = path.substring(0, bangIndex);
+                        if (jarFile.startsWith("file:")) {
+                            jarFile = new File(new URL(jarFile).toURI()).getAbsolutePath();
+                        }
+                        try (JarFile jar = new JarFile(jarFile)) {
+                            result.addAll(scanJar(jar, baseClass, annotation));
+                        }
                     }
                 }
             }
-        } catch (IOException | ClassNotFoundException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
-
         return result;
     }
 

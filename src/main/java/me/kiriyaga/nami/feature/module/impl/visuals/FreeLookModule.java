@@ -19,7 +19,7 @@ public class FreeLookModule extends Module {
 
 
     public FreeLookModule() {
-        super("FreeLook", "Look around freely without moving your real yaw/pitch.", ModuleCategory.of("Visuals"), "freelook", "freelok", "third");
+        super("FreeLook", "Look around freely without moving your real yaw/pitch.", ModuleCategory.of("Render"), "freelook", "freelok", "third");
     }
 
     @Override

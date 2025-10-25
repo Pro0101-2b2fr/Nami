@@ -23,7 +23,7 @@ public class ViewModelModule extends Module {
     public final DoubleSetting rotZ = addSetting(new DoubleSetting("RotZ", 0.0, -180.0, 180.0));
 
     public ViewModelModule() {
-        super("Viewmodel", "Modifies hand position, scale, and rotation.", ModuleCategory.of("Visuals"), "vm", "handpos");
+        super("Viewmodel", "Modifies hand position, scale, and rotation.", ModuleCategory.of("Render"), "vm", "handpos");
     eatingBob.setShowCondition(() -> eating.get());
     }
 }

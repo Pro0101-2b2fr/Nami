@@ -23,6 +23,9 @@ public class FontLoader {
 
     public void init() {
         FontModule fontModule = MODULE_MANAGER.getStorage().getByClass(FontModule.class);
+        if (fontModule == null)
+            return;
+
         int newSize = fontModule.glyphSize.get();
         int newOversample = fontModule.oversample.get();
 

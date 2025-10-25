@@ -17,6 +17,14 @@ public class FontManager {
         fontLoader.init();
     }
 
+    public void drawText(DrawContext context, Text text, int x, int y, boolean shadow, int color) {
+        context.drawText(rendererProvider.getRenderer(), text, x, y, color, shadow);
+    }
+
+    public void drawText(DrawContext context, String text, int x, int y, boolean shadow, int color) {
+        context.drawText(rendererProvider.getRenderer(), text, x, y, color, shadow);
+    }
+
     public void drawText(DrawContext context, Text text, int x, int y, boolean shadow) {
         context.drawText(rendererProvider.getRenderer(), text, x, y, 0xFFFFFFFF, shadow);
     }

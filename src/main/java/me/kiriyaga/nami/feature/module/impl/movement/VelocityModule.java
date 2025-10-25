@@ -1,44 +1,36 @@
 package me.kiriyaga.nami.feature.module.impl.movement;
 
+import me.kiriyaga.nami.core.rotation.model.RotationRequest;
 import me.kiriyaga.nami.event.EventPriority;
 import me.kiriyaga.nami.event.SubscribeEvent;
 import me.kiriyaga.nami.event.impl.*;
-
-import me.kiriyaga.nami.feature.module.ModuleCategory;
 import me.kiriyaga.nami.feature.module.Module;
-
+import me.kiriyaga.nami.feature.module.ModuleCategory;
 import me.kiriyaga.nami.feature.module.RegisterModule;
-import me.kiriyaga.nami.mixin.*;
-
+import me.kiriyaga.nami.feature.module.impl.client.RotationModule;
 import me.kiriyaga.nami.feature.setting.impl.*;
+import me.kiriyaga.nami.mixin.*;
 
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityStatuses;
 import net.minecraft.entity.projectile.FishingBobberEntity;
-
 import net.minecraft.network.packet.Packet;
+import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.network.packet.s2c.play.*;
-
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.*;
 import net.minecraft.util.shape.VoxelShape;
 
 import java.util.*;
 
-import static me.kiriyaga.nami.Nami.MC;
+import static me.kiriyaga.nami.Nami.*;
 
 @RegisterModule
 public class VelocityModule extends Module {
 
-    private enum Mode {
-        VANILLA,
-        WALLS
-    }
+    private enum Mode { VANILLA, WALLS, GRIM }
 
-    private final EnumSetting<Mode> modeSetting = addSetting(new EnumSetting<>("Mode", Mode.WALLS));
+    private final EnumSetting<Mode> mode = addSetting(new EnumSetting<>("Mode", Mode.WALLS));
     private final DoubleSetting horizontalPercent = addSetting(new DoubleSetting("Horizontal", 100.0, 0.0, 100.0));
     private final DoubleSetting verticalPercent = addSetting(new DoubleSetting("Vertical", 100.0, 0.0, 100.0));
     private final BoolSetting handleKnockback = addSetting(new BoolSetting("Knockback", true));
@@ -51,20 +43,30 @@ public class VelocityModule extends Module {
     private final BoolSetting cancelFishHook = addSetting(new BoolSetting("RodPush", false));
 
     private boolean pendingConcealment = false;
+    private boolean pendingVelocity = false;
 
-    public VelocityModule() {
-        super("Velocity", "Reduces or modifies incoming velocity effects.", ModuleCategory.of("Movement"), "antiknockback", "мудщсшен");
+    public VelocityModule() {super("Velocity", "Reduces incoming velocity effects.", ModuleCategory.of("Movement"), "antiknockback");}
+
+    @Override
+    public void onEnable() {
+        pendingVelocity = false;
     }
 
     @Override
     public void onDisable() {
+        flushPendingVelocity();
+        pendingConcealment = false;
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOW)
+    public void onPreTick(PreTickEvent event) {
+        flushPendingVelocity();
         pendingConcealment = false;
     }
 
     @SubscribeEvent(priority = EventPriority.NORMAL)
     public void onPacketReceive(PacketReceiveEvent event) {
-        ClientPlayerEntity player = MC.player;
-        if (player == null || MC.world == null) return;
+        if (MC.player == null || MC.world == null) return;
 
         Packet<?> packet = event.getPacket();
 
@@ -72,70 +74,17 @@ public class VelocityModule extends Module {
             pendingConcealment = true;
         }
 
-        if (packet instanceof EntityVelocityUpdateS2CPacket velocityPacket && handleKnockback.get()) {
-            if (velocityPacket.getEntityId() != player.getId()) return;
-
-            if (pendingConcealment && isZeroVelocity(velocityPacket)) {
-                pendingConcealment = false;
-                return;
-            }
-
-            if (modeSetting.get() == Mode.WALLS && (!isPlayerPhased() || (requireGround.get() && !player.isOnGround()))) {
-                return;
-            }
-
-            switch (modeSetting.get()) {
-                case VANILLA, WALLS -> {
-                    if (isNoVelocityConfigured()) {
-                        event.cancel();
-                    } else {
-                        scaleVelocityPacket(velocityPacket);
-                    }
-                }
-            }
-        }
-
-        else if (packet instanceof ExplosionS2CPacket explosionPacket && handleExplosions.get()) {
-            boolean phased = isPlayerPhased();
-
-            switch (modeSetting.get()) {
-                case VANILLA -> {
-                    if (isNoVelocityConfigured()) {
-                        event.cancel();
-                    } else {
-                        scaleExplosionPacket(explosionPacket);
-                    }
-                }
-                case WALLS -> {
-                    if (!phased) return;
-
-                    if (isNoVelocityConfigured()) {
-                        event.cancel();
-                    } else {
-                        scaleExplosionPacket(explosionPacket);
-                    }
-                }
-            }
-        }
-
-
-        else if (packet instanceof BundleS2CPacket bundlePacket) {
-            handleBundlePacket(event, bundlePacket);
-        }
-
-        else if (packet instanceof EntityStatusS2CPacket statusPacket
-                && statusPacket.getStatus() == EntityStatuses.PULL_HOOKED_ENTITY
+        if (packet instanceof EntityVelocityUpdateS2CPacket vel && handleKnockback.get()) {
+            handleVelocityPacket(event, vel);
+        } else if (packet instanceof ExplosionS2CPacket explosion && handleExplosions.get()) {
+            handleExplosionPacket(event, explosion);
+        } else if (packet instanceof BundleS2CPacket bundle) {
+            handleBundlePacket(event, bundle);
+        } else if (packet instanceof EntityStatusS2CPacket status
+                && status.getStatus() == EntityStatuses.PULL_HOOKED_ENTITY
                 && cancelFishHook.get()) {
-            Entity entity = statusPacket.getEntity(MC.world);
-            if (entity instanceof FishingBobberEntity hook && hook.getHookedEntity() == player) {
-                event.cancel();
-            }
+            handleFishHookPacket(event, status);
         }
-    }
-
-    @SubscribeEvent(priority = EventPriority.NORMAL)
-    public void onPreTick(PreTickEvent event) {
-        pendingConcealment = false;
     }
 
     @SubscribeEvent(priority = EventPriority.NORMAL)
@@ -159,55 +108,157 @@ public class VelocityModule extends Module {
         }
     }
 
-    private void handleBundlePacket(PacketReceiveEvent event, BundleS2CPacket bundle) {
-        List<Packet<?>> filteredPackets = new ArrayList<>();
+    private void handleVelocityPacket(PacketReceiveEvent event, EntityVelocityUpdateS2CPacket packet) {
+        if (packet.getEntityId() != MC.player.getId()) return;
 
-        for (Packet<?> p : bundle.getPackets()) {
-            if (p instanceof ExplosionS2CPacket explosion && handleExplosions.get()) {
-                boolean phased = isPlayerPhased();
-
-                switch (modeSetting.get()) {
-                    case VANILLA -> {
-                        if (!isNoVelocityConfigured()) {
-                            scaleExplosionPacket(explosion);
-                        } else continue;
-                    }
-                    case WALLS -> {
-                        if (!phased) {
-                            filteredPackets.add(p);
-                            continue;
-                        }
-                        if (!isNoVelocityConfigured()) {
-                            scaleExplosionPacket(explosion);
-                        } else continue;
-                    }
-                }
-
-                filteredPackets.add(p);
-            }
-
-
-            else if (p instanceof EntityVelocityUpdateS2CPacket velocity && handleKnockback.get()) {
-                if (velocity.getEntityId() != MC.player.getId()) {
-                    filteredPackets.add(p);
-                    continue;
-                }
-                
-                if (modeSetting.get() == Mode.WALLS) {
-                    if (!isPlayerPhased() || (requireGround.get() && !MC.player.isOnGround())) {
-                        filteredPackets.add(p);
-                        continue;
-                    }
-                }
-
-                if (isNoVelocityConfigured()) continue;
-                scaleVelocityPacket(velocity);
-            }
-
-            filteredPackets.add(p);
+        if (pendingConcealment && isZeroVelocity(packet)) {
+            pendingConcealment = false;
+            return;
         }
 
-        ((BundlePacketAccessor) bundle).setIterable(filteredPackets);
+        switch (mode.get()) {
+            case VANILLA -> processVelocityVanilla(event, packet);
+            case WALLS -> processVelocityWalls(event, packet);
+            case GRIM -> processVelocityGrim(event);
+        }
+    }
+
+    private void handleExplosionPacket(PacketReceiveEvent event, ExplosionS2CPacket packet) {
+        switch (mode.get()) {
+            case VANILLA -> processExplosionVanilla(event, packet);
+            case WALLS -> processExplosionWalls(event, packet);
+            case GRIM -> processExplosionGrim(event);
+        }
+    }
+
+    private void handleBundlePacket(PacketReceiveEvent event, BundleS2CPacket bundle) {
+        List<Packet<?>> filtered = new ArrayList<>();
+
+        for (Packet<?> packet : bundle.getPackets()) {
+            if (packet instanceof ExplosionS2CPacket exp && handleExplosions.get()) {
+                processBundleExplosion(filtered, exp);
+            } else if (packet instanceof EntityVelocityUpdateS2CPacket vel && handleKnockback.get()) {
+                processBundleVelocity(filtered, vel);
+            } else {
+                filtered.add(packet);
+            }
+        }
+
+        ((BundlePacketAccessor) bundle).setIterable(filtered);
+    }
+
+    private void handleFishHookPacket(PacketReceiveEvent event, EntityStatusS2CPacket status) {
+        Entity entity = status.getEntity(MC.world);
+        if (entity instanceof FishingBobberEntity hook && hook.getHookedEntity() == MC.player) {
+            event.cancel();
+        }
+    }
+
+    private void processVelocityVanilla(PacketReceiveEvent event, EntityVelocityUpdateS2CPacket packet) {
+        if (isNoVelocityConfigured()) {
+            event.cancel();
+        } else {
+            scaleVelocityPacket(packet);
+        }
+    }
+
+    private void processVelocityWalls(PacketReceiveEvent event, EntityVelocityUpdateS2CPacket packet) {
+        if (!isPhased() || (requireGround.get() && !MC.player.isOnGround())) return;
+        processVelocityVanilla(event, packet);
+    }
+
+    private void processVelocityGrim(PacketReceiveEvent event) {
+        if (!FLAG_MANAGER.hasElapsedSinceSetback(100)) return;
+        event.cancel();
+        pendingVelocity = true;
+    }
+
+    private void processExplosionVanilla(PacketReceiveEvent event, ExplosionS2CPacket packet) {
+        if (isNoVelocityConfigured()) {
+            event.cancel();
+        } else {
+            scaleExplosionPacket(packet);
+        }
+    }
+
+    private void processExplosionWalls(PacketReceiveEvent event, ExplosionS2CPacket packet) {
+        if (!isPhased()) return;
+        processExplosionVanilla(event, packet);
+    }
+
+    private void processExplosionGrim(PacketReceiveEvent event) {
+        if (!FLAG_MANAGER.hasElapsedSinceSetback(100)) return;
+        event.cancel();
+        pendingVelocity = true;
+    }
+
+    private void processBundleExplosion(List<Packet<?>> filtered, ExplosionS2CPacket packet) {
+        switch (mode.get()) {
+            case VANILLA -> {
+                if (!isNoVelocityConfigured()) scaleExplosionPacket(packet);
+                else return;
+            }
+            case WALLS -> {
+                if (!isPhased()) { filtered.add(packet); return; }
+                if (!isNoVelocityConfigured()) scaleExplosionPacket(packet);
+                else return;
+            }
+            case GRIM -> {
+                if (!FLAG_MANAGER.hasElapsedSinceSetback(100)) { filtered.add(packet); return; }
+                pendingVelocity = true;
+                return;
+            }
+        }
+        filtered.add(packet);
+    }
+
+    private void processBundleVelocity(List<Packet<?>> filtered, EntityVelocityUpdateS2CPacket packet) {
+        if (packet.getEntityId() != MC.player.getId()) {
+            filtered.add(packet);
+            return;
+        }
+
+        switch (mode.get()) {
+            case VANILLA -> {
+                if (!isNoVelocityConfigured()) scaleVelocityPacket(packet);
+                else return;
+            }
+            case WALLS -> {
+                if (!isPhased() || (requireGround.get() && !MC.player.isOnGround())) {
+                    filtered.add(packet);
+                    return;
+                }
+                if (!isNoVelocityConfigured()) scaleVelocityPacket(packet);
+                else return;
+            }
+            case GRIM -> {
+                if (!FLAG_MANAGER.hasElapsedSinceSetback(100)) { filtered.add(packet); return; }
+                pendingVelocity = true;
+                return;
+            }
+        }
+
+        filtered.add(packet);
+    }
+
+    private void flushPendingVelocity() {
+        if (!pendingVelocity) return;
+        if (mode.get() == Mode.GRIM) {
+            sendRotationFix();
+        }
+        pendingVelocity = false;
+    }
+
+    private void sendRotationFix() { // somehow it happens, needs tests on grim v2 asap
+        float yaw = ROTATION_MANAGER.getStateHandler().getServerYaw();
+        float pitch = ROTATION_MANAGER.getStateHandler().getServerPitch();
+
+        ROTATION_MANAGER.getRequestHandler().submit(new RotationRequest(this.name, 0, yaw, pitch, RotationModule.RotationMode.SILENT));
+        MC.getNetworkHandler().sendPacket(new PlayerActionC2SPacket(
+                PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK,
+                MC.player.isCrawling() ? MC.player.getBlockPos() : MC.player.getBlockPos().up(),
+                Direction.DOWN
+        ));
     }
 
     private boolean isZeroVelocity(EntityVelocityUpdateS2CPacket packet) {
@@ -218,33 +269,29 @@ public class VelocityModule extends Module {
         return horizontalPercent.get() == 0 && verticalPercent.get() == 0;
     }
 
-    private boolean isPlayerPhased() {
+    private boolean isPhased() {
         ClientPlayerEntity player = MC.player;
         if (player == null || MC.world == null) return false;
 
-        Box boundingBox = player.getBoundingBox();
-
-        int minX = MathHelper.floor(boundingBox.minX);
-        int maxX = MathHelper.ceil(boundingBox.maxX);
-        int minY = MathHelper.floor(boundingBox.minY);
-        int maxY = MathHelper.ceil(boundingBox.maxY);
-        int minZ = MathHelper.floor(boundingBox.minZ);
-        int maxZ = MathHelper.ceil(boundingBox.maxZ);
+        Box box = player.getBoundingBox();
+        int minX = MathHelper.floor(box.minX);
+        int maxX = MathHelper.ceil(box.maxX);
+        int minY = MathHelper.floor(box.minY);
+        int maxY = MathHelper.ceil(box.maxY);
+        int minZ = MathHelper.floor(box.minZ);
+        int maxZ = MathHelper.ceil(box.maxZ);
 
         for (int x = minX; x < maxX; x++) {
             for (int y = minY; y < maxY; y++) {
                 for (int z = minZ; z < maxZ; z++) {
                     BlockPos pos = new BlockPos(x, y, z);
                     VoxelShape shape = MC.world.getBlockState(pos).getCollisionShape(MC.world, pos);
-
-                    if (!shape.isEmpty() && shape.getBoundingBox().offset(pos).intersects(boundingBox)) {
-                        //CHAT_MANAGER.sendRaw("phased");
+                    if (!shape.isEmpty() && shape.getBoundingBox().offset(pos).intersects(box)) {
                         return true;
                     }
                 }
             }
         }
-
         return false;
     }
 
@@ -260,7 +307,6 @@ public class VelocityModule extends Module {
 
     private void scaleExplosionPacket(ExplosionS2CPacket packet) {
         ExplosionS2CPacketAccessor accessor = (ExplosionS2CPacketAccessor) (Object) packet;
-
         accessor.getPlayerKnockback().ifPresent(original -> {
             Vec3d scaled = new Vec3d(
                     original.x * (horizontalPercent.get() / 100.0),

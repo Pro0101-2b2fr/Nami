@@ -49,8 +49,6 @@ import java.awt.*;
 
 public class RenderUtil {
 
-    // TODO: we shouldnt render fill if camera inside of the box
-
     public static void rect(DrawContext stack, float x1, float y1, float x2, float y2, int color) {
         rectFilled(stack, x1, y1, x2, y2, color);
     }

@@ -1,6 +1,6 @@
 package me.kiriyaga.nami.feature.module.impl.combat;
 
-import me.kiriyaga.nami.core.executable.model.ExecutableEventType;
+import me.kiriyaga.nami.core.executable.model.ExecutableThreadType;
 import me.kiriyaga.nami.event.EventPriority;
 import me.kiriyaga.nami.event.SubscribeEvent;
 import me.kiriyaga.nami.event.impl.DissconectEvent;
@@ -9,9 +9,9 @@ import me.kiriyaga.nami.event.impl.PacketReceiveEvent;
 import me.kiriyaga.nami.event.impl.PreTickEvent;
 import me.kiriyaga.nami.feature.module.ModuleCategory;
 import me.kiriyaga.nami.feature.module.Module;
-import me.kiriyaga.nami.feature.module.impl.misc.AutoReconnectModule;
+import me.kiriyaga.nami.feature.module.impl.miscellaneous.AutoReconnectModule;
 import me.kiriyaga.nami.feature.module.RegisterModule;
-import me.kiriyaga.nami.feature.module.impl.misc.IllegalDisconnectModule;
+import me.kiriyaga.nami.feature.module.impl.miscellaneous.IllegalDisconnectModule;
 import me.kiriyaga.nami.feature.setting.impl.BoolSetting;
 import me.kiriyaga.nami.feature.setting.impl.IntSetting;
 import me.kiriyaga.nami.util.EntityUtils;
@@ -82,7 +82,7 @@ public class AutoLogModule extends Module {
     public void onPacketReceive(PacketReceiveEvent event) {
         if (event.getPacket() instanceof EntityStatusS2CPacket packet) {
             if (packet.getEntity(MC.world) == MC.player && packet.getStatus() == 35 && onPop.get()) {
-                EXECUTABLE_MANAGER.getRequestHandler().submit(() -> logOut("AutoLog: totem got popped."), 0, ExecutableEventType.PRE_TICK);
+                EXECUTABLE_MANAGER.getRequestHandler().submit(() -> logOut("AutoLog: totem got popped."), 0, ExecutableThreadType.PRE_TICK);
             }
         }
     }

@@ -19,7 +19,7 @@ public class NoWeatherModule extends Module {
     private Perspective previousPerspective;
 
     public NoWeatherModule() {
-        super("NoWeather", "Disables rendering of weather.", ModuleCategory.of("Visuals"), "noweather", "nowether", "nowather");
+        super("NoWeather", "Disables rendering of weather.", ModuleCategory.of("Render"), "noweather", "nowether", "nowather");
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)

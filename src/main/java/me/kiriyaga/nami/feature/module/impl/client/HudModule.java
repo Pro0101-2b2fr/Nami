@@ -4,6 +4,7 @@ import me.kiriyaga.nami.event.EventPriority;
 import me.kiriyaga.nami.event.SubscribeEvent;
 import me.kiriyaga.nami.event.impl.PreTickEvent;
 import me.kiriyaga.nami.event.impl.Render2DEvent;
+import me.kiriyaga.nami.feature.gui.screen.HudEditorScreen;
 import me.kiriyaga.nami.feature.module.HudElementModule;
 import me.kiriyaga.nami.feature.module.Module;
 import me.kiriyaga.nami.feature.module.ModuleCategory;
@@ -38,6 +39,7 @@ public class HudModule extends Module {
 
     @SubscribeEvent(priority = EventPriority.LOW)
     public void onUpdate(PreTickEvent event) {
+
         if (bounce.get()) {
             float step = bounceSpeed.get() / 100f;
             if (increasing) {

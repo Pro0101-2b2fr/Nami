@@ -31,7 +31,7 @@ public class AutoMountModule extends Module {
     private int actionCooldown = 0;
 
     public AutoMountModule() {
-        super("auto mount", "Automatically mounts nearby entities.", ModuleCategory.of("World"), "mount", "automount");
+        super("AutoMount", "Automatically mounts nearby entities.", ModuleCategory.of("World"), "mount", "automount");
     }
 
     @SubscribeEvent

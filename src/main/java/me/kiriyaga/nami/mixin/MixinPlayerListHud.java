@@ -1,6 +1,6 @@
 package me.kiriyaga.nami.mixin;
 
-import me.kiriyaga.nami.feature.module.impl.misc.BetterTabModule;
+import me.kiriyaga.nami.feature.module.impl.miscellaneous.BetterTabModule;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.hud.PlayerListHud;

@@ -31,7 +31,7 @@ public class TracersModule extends Module {
     public final DoubleSetting thickness = addSetting(new DoubleSetting("Thickness", 0.002, 0.0005, 0.002));
 
     public TracersModule() {
-        super("Tracers", "Draws lines from the center of the screen to entities.", ModuleCategory.of("Visuals"));
+        super("Tracers", "Draws lines from the center of the screen to entities.", ModuleCategory.of("Render"));
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)

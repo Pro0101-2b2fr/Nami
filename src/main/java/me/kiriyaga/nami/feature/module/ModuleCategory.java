@@ -6,7 +6,7 @@ public class ModuleCategory {
     private static final Map<String, ModuleCategory> CATEGORIES = new LinkedHashMap<>();
 
     private static final List<String> FIXED_ORDER = List.of(
-            "Combat", "Movement", "Misc", "Visuals", "World", "HUD", "Client"
+            "Combat", "Miscellaneous", "Movement", "Render", "World", "HUD", "Client"
     );
 
     private final String name;

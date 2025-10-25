@@ -29,6 +29,7 @@ import java.awt.*;
 
 import static me.kiriyaga.nami.Nami.MC;
 import static me.kiriyaga.nami.Nami.MODULE_MANAGER;
+import static me.kiriyaga.nami.util.InteractionUtils.airPlace;
 
 @RegisterModule
 public class AirPlaceModule extends Module {
@@ -91,26 +92,7 @@ public class AirPlaceModule extends Module {
         }
         cooldown = delay.get();
 
-        blockAirPlace(target);
-    }
-
-    public void blockAirPlace(BlockHitResult target) {
-        if (grim.get()) {
-            MC.getNetworkHandler().sendPacket(new PlayerActionC2SPacket(
-                    PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
-
-            MC.interactionManager.interactBlock(MC.player, Hand.OFF_HAND, target);
-            if (swing.get())
-                MC.player.swingHand(Hand.MAIN_HAND, false);
-
-            MC.getNetworkHandler().sendPacket(new HandSwingC2SPacket(Hand.OFF_HAND));
-            MC.getNetworkHandler().sendPacket(new PlayerActionC2SPacket(
-                    PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
-        } else {
-            MC.interactionManager.interactBlock(MC.player, Hand.MAIN_HAND, target);
-            if (swing.get())
-                MC.player.swingHand(Hand.MAIN_HAND);
-        }
+        airPlace(target, grim.get(), swing.get());
     }
 
     @SubscribeEvent

@@ -7,6 +7,7 @@ import me.kiriyaga.nami.feature.module.ModuleCategory;
 import me.kiriyaga.nami.feature.module.Module;
 import me.kiriyaga.nami.feature.module.RegisterModule;
 import me.kiriyaga.nami.feature.setting.impl.BoolSetting;
+import me.kiriyaga.nami.feature.setting.impl.IntSetting;
 import net.minecraft.particle.ParticleTypes;
 
 import static me.kiriyaga.nami.Nami.MC;
@@ -18,6 +19,7 @@ public class NoRenderModule extends Module {
 
     public final BoolSetting noTilt = addSetting(new BoolSetting("NoTilt", true));
     public final BoolSetting noBob = addSetting(new BoolSetting("NoBob", true));
+    public final IntSetting tileEntity = addSetting(new IntSetting("TileEntity", 0, 0, 75));
     public final BoolSetting portalGui = addSetting(new BoolSetting("PortalGui", true));
     public final BoolSetting noFire = addSetting(new BoolSetting("NoFire", true));
     public final BoolSetting noBackground = addSetting(new BoolSetting("NoBackground", true));
@@ -41,7 +43,7 @@ public class NoRenderModule extends Module {
     public final BoolSetting noPowderedSnow = addSetting(new BoolSetting("NoPowdered", false));
 
     public NoRenderModule() {
-        super("NoRender", "Prevent rendering certain overlays/effects.", ModuleCategory.of("Visuals"), "norender");
+        super("NoRender", "Prevent rendering certain overlays/effects.", ModuleCategory.of("Render"), "norender");
         noFire.setOnChanged(this::reloadRenderer);
         noBackground.setOnChanged(this::reloadRenderer);
         noLiguid.setOnChanged(this::reloadRenderer);

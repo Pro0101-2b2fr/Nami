@@ -6,11 +6,15 @@ import me.kiriyaga.nami.event.impl.PreTickEvent;
 import me.kiriyaga.nami.feature.module.Module;
 import me.kiriyaga.nami.feature.module.ModuleCategory;
 import me.kiriyaga.nami.feature.module.RegisterModule;
+import me.kiriyaga.nami.feature.setting.impl.BoolSetting;
+import me.kiriyaga.nami.feature.setting.impl.DoubleSetting;
 import me.kiriyaga.nami.feature.setting.impl.EnumSetting;
 import me.kiriyaga.nami.feature.setting.impl.IntSetting;
+import me.kiriyaga.nami.util.InteractionUtils;
 import net.minecraft.block.*;
 import net.minecraft.util.math.BlockPos;
 
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -26,6 +30,10 @@ public class FuckerModule extends Module {
     }
 
     public final EnumSetting<Mode> mode = addSetting(new EnumSetting<>("Mode", Mode.FARM));
+    public final DoubleSetting distance = addSetting(new DoubleSetting("Range", 5.0, 1.0, 6.0));
+    public final BoolSetting rotate = addSetting(new BoolSetting("Rotate", true));
+    public final BoolSetting swing = addSetting(new BoolSetting("Swing", true));
+    public final BoolSetting grim = addSetting(new BoolSetting("Grim", false));
     public final IntSetting radius = addSetting(new IntSetting("Radius", 3, 1, 6));
 
     private final Set<BlockPos> s = new HashSet<>();
@@ -36,7 +44,6 @@ public class FuckerModule extends Module {
 
     @Override
     public void onDisable() {
-        s.forEach(pos -> BREAK_MANAGER.getRequestHandler().removeBlock(pos));
         s.clear();
     }
 
@@ -50,28 +57,6 @@ public class FuckerModule extends Module {
         Set<BlockPos> validTargets = new HashSet<>();
 
         switch (mode.get()) {
-//            case FLOOR -> {
-//                BlockPos base = playerPos.down();
-//                for (int x = -r; x <= r; x++) {
-//                    for (int z = -r; z <= r; z++) {
-//                        BlockPos checkPos = base.add(x, 0, z);
-//                        addBlockToBreak(checkPos);
-//                    }
-//                }
-//            }
-//            case AROUND -> {
-//                BlockPos base = playerPos;
-//                for (int x = -r; x <= r; x++) {
-//                    for (int y = -r; y <= r; y++) {
-//                        for (int z = -r; z <= r; z++) {
-//                            BlockPos checkPos = base.add(x, y, z);
-//                            if (checkPos.getY() < playerPos.getY()) continue;
-//                            if (checkPos.equals(playerPos)) continue;
-//                            addBlockToBreak(checkPos);
-//                        }
-//                    }
-//                }
-//            }
             case FARM -> {
                 for (int x = -r; x <= r; x++) {
                     for (int y = -r; y <= r; y++) {
@@ -113,19 +98,19 @@ public class FuckerModule extends Module {
             }
         }
 
-        s.removeIf(pos -> {
-            if (!validTargets.contains(pos)) {
-                BREAK_MANAGER.getRequestHandler().removeBlock(pos);
-                return true;
-            }
-            return false;
-        });
+        BlockPos bestTarget = validTargets.stream()
+                .min(Comparator.comparingDouble(a -> MC.player.squaredDistanceTo(a.getX() + 0.5, a.getY() + 0.5, a.getZ() + 0.5)))
+                .orElse(null);
 
-        for (BlockPos pos : validTargets) {
-            if (!s.contains(pos)) {
-                BREAK_MANAGER.getRequestHandler().addBlock(pos);
-                s.add(pos);
-            }
+        if (bestTarget != null) {
+            InteractionUtils.breakBlock(
+                    bestTarget,
+                    distance.get(),
+                    rotate.get(),
+                    swing.get(),
+                    grim.get(),
+                    this.name
+            );
         }
     }
 
@@ -146,7 +131,7 @@ public class FuckerModule extends Module {
 
         if (block instanceof NetherWartBlock) {
             Integer age = state.get(NetherWartBlock.AGE);
-            return age != null && age >= 3;  // it should be 3 but im not sure TODO: check this
+            return age != null && age >= 3;  // it's 3 for a fully grown netherwart
         }
 
         return false;

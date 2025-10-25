@@ -17,7 +17,7 @@ public class FriendCommand extends Command {
                 "friend",
                 new CommandArgument[]{
                         new CommandArgument.ActionArg("add/del/list", "add", "del", "list"),
-                        new CommandArgument.StringArg("name", 1, 32) {
+                        new CommandArgument.FriendNameArg("name", 1, 32) {
                             @Override
                             public boolean isRequired() {
                                 return false;

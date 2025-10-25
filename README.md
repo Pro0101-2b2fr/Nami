@@ -40,6 +40,7 @@ This project started as a clean, open-source alternative aiming to be transparen
 
 <img width="1920" height="1080" alt="ClickGUI" src="Assets/clickgui.png" />
 <img width="1920" height="1080" alt="HudEditor" src="Assets/hudeditor.png" />
+<img width="1920" height="1080" alt="Friends" src="Assets/friends.png" />
 
 </details>
 

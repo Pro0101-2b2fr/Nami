@@ -26,14 +26,14 @@ import static me.kiriyaga.nami.Nami.MC;
 public class SneakModule extends Module {
 
     public enum Mode {
-        always,
-        corners,
-        ledge
+        ALWAYS,
+        CORNERS,
+        LEDGE
     }
 
     private final Map<BlockPos, Color> checkedBlocks = new HashMap<>();
 
-    private final EnumSetting<Mode> mode = addSetting(new EnumSetting<>("Mode", Mode.always));
+    private final EnumSetting<Mode> mode = addSetting(new EnumSetting<>("Mode", Mode.ALWAYS));
     //private final BoolSetting render = addSetting(new BoolSetting("render", false));
     //private final DoubleSetting edgeThreshold = addSetting(new DoubleSetting("EDGE_THRESHOLD", 0.2, 0.2, 1.4));
 
@@ -50,16 +50,16 @@ public class SneakModule extends Module {
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public void onUpdateEvent(PreTickEvent event) {
+    public void onPreTickEvent(PreTickEvent event) {
         ClientPlayerEntity player = MC.player;
         if (player == null) return;
 
         this.setDisplayInfo(mode.get().toString());
 
         boolean shouldSneak = switch (mode.get()) {
-            case always -> true;
-            case corners -> shouldSneakAtEdges(player);
-            case ledge -> false;
+            case ALWAYS -> true;
+            case CORNERS -> shouldSneakAtEdges(player);
+            case LEDGE -> false;
         };
 
         setSneakHeld(shouldSneak);
@@ -68,7 +68,7 @@ public class SneakModule extends Module {
 
     @SubscribeEvent(priority = EventPriority.LOW)
     public void onLedgeClip(LedgeClipEvent event) {
-        if (mode.get() != Mode.ledge) return;
+        if (mode.get() != Mode.LEDGE) return;
         assert MC.player != null;
         if (!MC.player.isSneaking()) {
             MC.player.setSneaking(true);

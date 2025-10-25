@@ -1,6 +1,6 @@
 package me.kiriyaga.nami.mixin;
 
-import me.kiriyaga.nami.feature.module.impl.misc.NameProtectModule;
+import me.kiriyaga.nami.feature.module.impl.miscellaneous.NameProtectModule;
 import net.minecraft.text.TextVisitFactory;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

@@ -1,6 +1,6 @@
 package me.kiriyaga.nami.feature.module.impl.combat;
 
-import me.kiriyaga.nami.core.executable.model.ExecutableEventType;
+import me.kiriyaga.nami.core.executable.model.ExecutableThreadType;
 import me.kiriyaga.nami.core.rotation.model.RotationRequest;
 import me.kiriyaga.nami.event.EventPriority;
 import me.kiriyaga.nami.event.SubscribeEvent;
@@ -12,19 +12,24 @@ import me.kiriyaga.nami.feature.module.Module;
 import me.kiriyaga.nami.feature.module.impl.client.ColorModule;
 import me.kiriyaga.nami.feature.module.RegisterModule;
 import me.kiriyaga.nami.feature.module.impl.client.DebugModule;
+import me.kiriyaga.nami.feature.module.impl.client.RotationModule;
 import me.kiriyaga.nami.feature.module.impl.movement.SprintModule;
 import me.kiriyaga.nami.feature.setting.impl.BoolSetting;
 import me.kiriyaga.nami.feature.setting.impl.DoubleSetting;
 import me.kiriyaga.nami.feature.setting.impl.EnumSetting;
+import me.kiriyaga.nami.util.EnchantmentUtils;
 import me.kiriyaga.nami.util.render.RenderUtil;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.AttributeModifiersComponent;
+import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.projectile.ShulkerBulletEntity;
 import net.minecraft.item.*;
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
-import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
 import net.minecraft.registry.tag.ItemTags;
 import net.minecraft.text.Text;
@@ -41,17 +46,15 @@ import static me.kiriyaga.nami.util.RotationUtils.*;
 public class AuraModule extends Module {
 
     public enum TpsMode { NONE, LATEST, AVERAGE }
-    public enum Rotate { NORMAL, HOLD}
+    public enum Rotate { NORMAL, HOLD, NONE}
     public enum Sprint { NONE, MOTION, PACKET }
+    public enum Swap { NONE, REQUIRE, NORMAL, SILENT }
 
     public final DoubleSetting attackRange = addSetting(new DoubleSetting("Range", 3.00, 1.0, 6.0));
-    public final BoolSetting vanillaRange = addSetting(new BoolSetting("VanillaRange", true));
-    public final BoolSetting swordOnly = addSetting(new BoolSetting("WeapOnly", false));
+    public final EnumSetting<Swap> swap = addSetting(new EnumSetting<>("Swap", Swap.REQUIRE));
     public final EnumSetting<TpsMode> tpsMode = addSetting(new EnumSetting<>("TPS", TpsMode.NONE));
     public final BoolSetting multiTask = addSetting(new BoolSetting("Multitask", false));
     public final EnumSetting<Sprint> stopSprinting = addSetting(new EnumSetting<>("Sprinting", Sprint.NONE));
-    public final BoolSetting raycast = addSetting(new BoolSetting("Raycast", true));
-    public final BoolSetting raycastConfirm = addSetting(new BoolSetting("Confirm", true));
     public final EnumSetting<Rotate> rotate = addSetting(new EnumSetting<>("Rotate", Rotate.NORMAL));
     public final BoolSetting render = addSetting(new BoolSetting("Render", true));
 
@@ -60,7 +63,6 @@ public class AuraModule extends Module {
 
     public AuraModule() {
         super("Aura", "Attacks certain targets automatically.", ModuleCategory.of("Combat"), "killaura", "ara", "killara");
-    raycastConfirm.setShowCondition(raycast::get);
     }
 
     @Override
@@ -72,6 +74,19 @@ public class AuraModule extends Module {
     @SubscribeEvent(priority = EventPriority.NORMAL)
     public void onTick(PreTickEvent event) {
         if (MC.player == null || MC.world == null) return;
+
+        float tps;
+        switch (tpsMode.get()) {
+            case LATEST -> tps = TICK_MANAGER.getLatestTPS();
+            case AVERAGE -> tps = TICK_MANAGER.getAverageTPS();
+            default -> tps = 20f;
+        }
+
+        attackCooldownTicks -= 1f * (tps / 20f);
+        if (attackCooldownTicks < 0f) attackCooldownTicks = 0f;
+
+        MODULE_MANAGER.getStorage().getByClass(DebugModule.class).debugAura(Text.of("cooldown ticks is : "+attackCooldownTicks));
+
         if (!multiTask.get() && MC.player.isUsingItem()) return;
 
         long startTime = System.nanoTime();
@@ -80,7 +95,7 @@ public class AuraModule extends Module {
         Entity target = ENTITY_MANAGER.getTarget();
         DebugModule debugModule = MODULE_MANAGER.getStorage().getByClass(DebugModule.class);
 
-        if (target == null || (swordOnly.get() && !(stack.getItem() instanceof AxeItem
+        if (target == null || (swap.get() == Swap.REQUIRE && !(stack.getItem() instanceof AxeItem
                 || stack.isIn(ItemTags.SWORDS)
                 || stack.getItem() instanceof TridentItem
                 || stack.getItem() instanceof MaceItem))) {
@@ -93,20 +108,10 @@ public class AuraModule extends Module {
         this.setDisplayInfo(target.getName().getString());
         long auraLogicStart = System.nanoTime();
 
-        float tps;
-        switch (tpsMode.get()) {
-            case LATEST -> tps = TICK_MANAGER.getLatestTPS();
-            case AVERAGE -> tps = TICK_MANAGER.getAverageTPS();
-            default -> tps = 20f;
-        }
-
 //        if (!ItemStack.areEqual(stack, lastHeldStack)) {
 //            lastHeldStack = stack;
 //            attackCooldownTicks = getBaseCooldownTicks(stack, tps);
 //        }
-
-        attackCooldownTicks -= 1f * (tps / 20f);
-        if (attackCooldownTicks < 0f) attackCooldownTicks = 0f;
 
         boolean skipCooldown = false;
 
@@ -136,8 +141,6 @@ public class AuraModule extends Module {
         //        if (MC.player.isGliding() && eyeDist >= 2.601) // yes
         //            return;
 
-        double eyeDist = getClosestEyeDistance(MC.player.getEyePos(), target.getBoundingBox());
-
         double preRotate;
 
         switch (rotate.get()) { // yes
@@ -146,52 +149,61 @@ public class AuraModule extends Module {
             default -> preRotate = 0.10;
         }
 
-        if (eyeDist <= attackRange.get()+0.10 && (skipCooldown || attackCooldownTicks <= preRotate * tps)) {
-            Vec3d rotationTarget;
-            if (raycast.get()) {
-                Vec3d eyePos = MC.player.getCameraPosVec(1.0f);
-                rotationTarget = getClosestPointToEye(eyePos, target.getBoundingBox());
-            } else {
-                rotationTarget = getEntityCenter(target);
+        if (MODULE_MANAGER.getStorage().getByClass(RotationModule.class).rotation.get() == RotationModule.RotationMode.SILENT)
+            preRotate = 0.00; // rotation silent are instant and do not require pre rotate to reduce attack delay
+
+        // RayCast as main distance check
+        if ((skipCooldown || attackCooldownTicks <= preRotate * tps)) {
+            Vec3d eyePos = MC.player.getCameraPosVec(1.0f);
+            Vec3d closestPoint = getClosestPointToEye(eyePos, target.getBoundingBox());
+            float idealYaw = (float) getYawToVec(MC.player, closestPoint);
+            float idealPitch = (float) getPitchToVec(MC.player, closestPoint);
+
+            EntityHitResult distanceCheck = raycastTarget(
+                    MC.player,
+                    target,
+                    attackRange.get() + (MODULE_MANAGER.getStorage().getByClass(RotationModule.class).rotation.get() == RotationModule.RotationMode.MOTION ? 0.10 : 0.00),
+                    idealYaw,
+                    idealPitch
+            );
+
+            boolean insideBox = target.getBoundingBox().contains(MC.player.getEyePos());
+
+            if (!insideBox && distanceCheck == null) return; // out because throretical distance recieved by raycast is too big
+            boolean canAttack = false;
+
+            if (rotate.get() != Rotate.NONE) {
+                ROTATION_MANAGER.getRequestHandler().submit(new RotationRequest(
+                        AuraModule.class.getName(),
+                        5,
+                        idealYaw,
+                        idealPitch
+                ));
+
+                EntityHitResult serverCheck = raycastTarget(
+                        MC.player,
+                        target,
+                        attackRange.get(),
+                        ROTATION_MANAGER.getStateHandler().getServerYaw(),
+                        ROTATION_MANAGER.getStateHandler().getServerPitch()
+                );
+
+                canAttack = serverCheck != null;
+
+                if (rotate.get() == Rotate.NONE)
+                    canAttack = true;
             }
 
-            ROTATION_MANAGER.getRequestHandler().submit(new RotationRequest(
-                    AuraModule.class.getName(),
-                    5,
-                    (float) getYawToVec(MC.player, rotationTarget),
-                    (float) getPitchToVec(MC.player, rotationTarget)
-            ));
+            if (insideBox)
+                canAttack = true;
+
+            if (!canAttack) return;
 
             SprintModule m = MODULE_MANAGER.getStorage().getByClass(SprintModule.class);
             if (stopSprinting.get() == Sprint.MOTION && m != null && m.isEnabled())
                 m.stopSprinting(3);
         }
 
-        if (!ROTATION_MANAGER.getRequestHandler().isCompleted(AuraModule.class.getName()) && (!raycast.get() || !raycastConfirm.get()))
-            return;
-
-        boolean canAttack;
-        if (raycast.get()) {
-            EntityHitResult attackHit;
-            if (raycastConfirm.get()) {
-                attackHit = raycastTarget(MC.player, target, attackRange.get(),
-                        ROTATION_MANAGER.getStateHandler().getServerYaw(),
-                        ROTATION_MANAGER.getStateHandler().getServerPitch());
-            } else {
-                Vec3d eyePos = MC.player.getEyePos();
-                Vec3d closestPoint = getClosestPointToEye(eyePos, target.getBoundingBox());
-                float idealYaw = (float) getYawToVec(MC.player, closestPoint);
-                float idealPitch = (float) getPitchToVec(MC.player, closestPoint);
-                attackHit = raycastTarget(MC.player, target, attackRange.get(), idealYaw, idealPitch);
-            }
-            boolean insideBox = target.getBoundingBox().contains(MC.player.getEyePos()); // i dont fucking know why raycast doesnt apply while inside AABB, i thought mc aabb fixes it
-            canAttack = insideBox || (attackHit != null && attackHit.getEntity() == target);
-        } else {
-            double dist = MC.player.getPos().distanceTo(getEntityCenter(target));
-            canAttack = dist <= attackRange.get();
-        }
-
-        if (!canAttack) return;
         if (!skipCooldown && attackCooldownTicks > 0f) return;
 
         boolean b = false;
@@ -202,8 +214,24 @@ public class AuraModule extends Module {
                 b = true;
             }
 
+        int prev = -1;
+
+        if (swap.get() == Swap.NORMAL || swap.get() == Swap.SILENT) {
+            int slot = getWeapon();
+            if (slot != -1) {
+                prev = MC.player.getInventory().getSelectedSlot();
+                INVENTORY_MANAGER.getSlotHandler().attemptSwitch(slot);
+            }
+        }
+
         MC.interactionManager.attackEntity(MC.player, target);
         MC.player.swingHand(Hand.MAIN_HAND);
+
+        if (swap.get() == Swap.SILENT) {
+            if (prev != -1) {
+                INVENTORY_MANAGER.getSlotHandler().attemptSwitch(prev);
+            }
+        }
 
         if (stopSprinting.get() == Sprint.PACKET)
             if (b)
@@ -234,16 +262,30 @@ public class AuraModule extends Module {
             }
 
             attackCooldownTicks = getBaseCooldownTicks(stack, tps);
-        }, 0, ExecutableEventType.PRE_TICK);
+        }, 0, ExecutableThreadType.PRE_TICK);
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onRender3D(Render3DEvent event) {
         if (!render.get() || currentTarget == null) return;
 
-        double eyeDist = getClosestEyeDistance(MC.player.getEyePos(), currentTarget.getBoundingBox());
+        Vec3d eyePos = MC.player.getCameraPosVec(1.0f);
+        Vec3d closestPoint = getClosestPointToEye(eyePos, currentTarget.getBoundingBox());
+        float idealYaw = (float) getYawToVec(MC.player, closestPoint);
+        float idealPitch = (float) getPitchToVec(MC.player, closestPoint);
 
-        if (eyeDist > attackRange.get()+0.10) return;
+        EntityHitResult distanceCheck = raycastTarget(
+                MC.player,
+                currentTarget,
+                attackRange.get() + (MODULE_MANAGER.getStorage().getByClass(RotationModule.class).rotation.get() == RotationModule.RotationMode.MOTION ? 0.10 : 0.00),
+                idealYaw,
+                idealPitch
+        );
+
+        boolean insideBox = currentTarget.getBoundingBox().contains(MC.player.getEyePos());
+
+        if (!insideBox && distanceCheck == null) return; // out because throretical distance recieved by raycast is too big
+
 
         ColorModule colorModule = MODULE_MANAGER.getStorage().getByClass(ColorModule.class);
         drawBox(currentTarget, colorModule.getStyledGlobalColor(), event.getMatrices(), event.getTickDelta());
@@ -260,7 +302,7 @@ public class AuraModule extends Module {
     private EntityHitResult raycastTarget(Entity player, Entity target, double reach, float yaw, float pitch) {
         Vec3d eyePos = player.getCameraPosVec(1.0f);
         Vec3d look = getLookVectorFromYawPitch(yaw, pitch);
-        Vec3d reachEnd = eyePos.add(look.multiply(vanillaRange.get() ? 3.00 : reach));
+        Vec3d reachEnd = eyePos.add(look.multiply(reach));
 
         Box targetBox = target.getBoundingBox();
 
@@ -271,13 +313,14 @@ public class AuraModule extends Module {
         return null;
     }
 
-    private static float getBaseCooldownTicks(ItemStack stack, float tps) {
+    private float getBaseCooldownTicks(ItemStack stack, float tps) {
         float baseTicks;
 
-        if (stack.isIn(ItemTags.SWORDS)) baseTicks = 12f;
-        else if (stack.isIn(ItemTags.AXES)) baseTicks = 20f;
-        else if (stack.getItem() instanceof TridentItem) baseTicks = 18f;
-        else if (stack.getItem() instanceof MaceItem) baseTicks = 33f;
+        ItemStack currentStack = ((swap.get() == Swap.SILENT || swap.get() == Swap.NORMAL) && getWeapon() != -1) ? MC.player.getInventory().getStack(getWeapon()) : stack;
+        if (currentStack.isIn(ItemTags.SWORDS)) baseTicks = 13f;
+        else if (currentStack.isIn(ItemTags.AXES)) baseTicks = 21f;
+        else if (currentStack.getItem() instanceof TridentItem) baseTicks = 19f;
+        else if (currentStack.getItem() instanceof MaceItem) baseTicks = 34f;
         else {
             float attackSpeed = 6f; // 2b2t allows from 4 to 6
             baseTicks = 20f / attackSpeed;
@@ -294,5 +337,52 @@ public class AuraModule extends Module {
             return false;
 
         return false;
+    }
+
+    public static int getWeapon() {
+        int bestSlot = -1;
+        float bestDamage = -1f;
+
+        boolean prioritizeMace = !MC.player.getAbilities().flying && !MC.player.isOnGround();
+
+        for (int slot = 0; slot < 9; slot++) {
+            ItemStack held = MC.player.getInventory().getStack(slot);
+            if (held.isEmpty()) continue;
+
+            boolean isSword = held.isIn(ItemTags.SWORDS);
+            boolean isAxe = held.isIn(ItemTags.AXES);
+            boolean isTrident = held.getItem() instanceof TridentItem;
+            boolean isMace = held.getItem() instanceof MaceItem;
+
+            if (!isSword && !isAxe && !isTrident && !isMace) continue;
+
+            if (isMace && prioritizeMace) return slot;
+
+            float attackDamage = 0f;
+
+            if (held.contains(DataComponentTypes.ATTRIBUTE_MODIFIERS)) {
+                AttributeModifiersComponent modifiers = held.get(DataComponentTypes.ATTRIBUTE_MODIFIERS);
+                for (var entry : modifiers.comp_2393()) {
+                    if (entry.comp_2395().matches(EntityAttributes.ATTACK_DAMAGE)) {
+                        attackDamage += (float) entry.comp_2396().value();
+                    }
+                }
+            }
+
+            if (isSword) attackDamage += 5f;
+
+            int sharpness = EnchantmentUtils.getEnchantmentLevel(held, Enchantments.SHARPNESS);
+            int smite = EnchantmentUtils.getEnchantmentLevel(held, Enchantments.SMITE);
+            int bane = EnchantmentUtils.getEnchantmentLevel(held, Enchantments.BANE_OF_ARTHROPODS);
+
+            attackDamage += sharpness * 1.25f + smite * 2.5f + bane * 2.5f;
+
+            if (attackDamage > bestDamage) {
+                bestDamage = attackDamage;
+                bestSlot = slot;
+            }
+        }
+
+        return bestSlot;
     }
 }

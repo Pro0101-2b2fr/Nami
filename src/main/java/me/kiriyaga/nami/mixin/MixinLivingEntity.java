@@ -1,16 +1,25 @@
 package me.kiriyaga.nami.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import me.kiriyaga.nami.feature.module.impl.client.RotationModule;
 import me.kiriyaga.nami.feature.module.impl.movement.ElytraFlyModule;
 import me.kiriyaga.nami.feature.module.impl.movement.HighJumpModule;
 import me.kiriyaga.nami.feature.module.impl.movement.NoJumpDelayModule;
+import me.kiriyaga.nami.feature.module.impl.movement.NoLevitation;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.effect.StatusEffect;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Items;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
@@ -147,4 +156,35 @@ public abstract class MixinLivingEntity extends Entity {
 //            }
 //        }
 //    }
+
+    @ModifyReturnValue(method = "hasStatusEffect", at = @At("RETURN"))
+    private boolean hasStatusEffect(boolean original, RegistryEntry<StatusEffect> effect) {
+        if ((Object) this instanceof PlayerEntity player &&
+                player == MC.player) {
+
+            NoLevitation nl = MODULE_MANAGER.getStorage().getByClass(NoLevitation.class);
+            if (nl != null && nl.isEnabled()) {
+                RegistryKey<StatusEffect> slowFallKey = StatusEffects.SLOW_FALLING.getKey().orElse(null);
+                if (nl.noSlowFall.get() && slowFallKey != null && effect.matchesKey(slowFallKey))
+                    return false;
+
+                RegistryKey<StatusEffect> levitationKey = StatusEffects.LEVITATION.getKey().orElse(null); // this just removes levitation damage reducing
+                if (levitationKey != null && effect.matchesKey(levitationKey))
+                    return false;
+            }
+        }
+        return original;
+    }
+
+    @ModifyReturnValue(method = "getStatusEffect", at = @At("RETURN"))
+    private StatusEffectInstance getStatusEffect(StatusEffectInstance original, RegistryEntry<StatusEffect> effect) {
+        NoLevitation nl = MODULE_MANAGER.getStorage().getByClass(NoLevitation.class);
+        if (nl != null && nl.isEnabled()) {
+            if (effect == StatusEffects.LEVITATION)
+                return null;
+//            if (nl.noSlowFall.get() && effect.value == StatusEffects.SLOW_FALLING)
+//                return null;
+        }
+        return original;
+    }
 }

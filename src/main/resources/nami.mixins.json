@@ -1,8 +1,9 @@
 {
   "required": true,
   "package": "me.kiriyaga.nami.mixin",
-  "compatibilityLevel": "JAVA_20",
+  "compatibilityLevel": "JAVA_21",
   "client": [
+    "MixinBlockEntityRenderDispatcher",
     "ChatHudAccessor",
     "ChatInputSuggestorMixin",
     "ClientPlayerInteractionManagerAccessor",
@@ -11,6 +12,7 @@
     "InputAccessor",
     "KeyBindingAccessor",
     "MixinArmorFeatureRenderer",
+    "MixinBlockEntityRenderDispatcher",
     "MixinBossBarHud",
     "MixinCamera",
     "MixinChatHud",
@@ -59,7 +61,6 @@
     "MixinLivingEntity",
     "MixinPlayerEntity",
     "MixinPlayerInteractEntityC2SPacket",
-    "MixinSodiumWorldRenderer",
     "MixinTextVisitFactory",
     "PlayerInteractEntityC2SPacketAccessor",
     "PlayerPositionAccessor",

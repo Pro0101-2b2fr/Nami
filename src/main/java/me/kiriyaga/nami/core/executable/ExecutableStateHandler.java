@@ -2,11 +2,11 @@ package me.kiriyaga.nami.core.executable;
 
 import me.kiriyaga.nami.core.executable.model.ExecutableRequest;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ExecutableStateHandler {
-    private final List<ExecutableRequest> activeRequests = new ArrayList<>();
+    private final List<ExecutableRequest> activeRequests = new CopyOnWriteArrayList<>();
 
     public List<ExecutableRequest> getActiveRequests() {
         return activeRequests;

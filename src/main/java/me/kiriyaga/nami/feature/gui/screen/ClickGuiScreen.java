@@ -4,33 +4,33 @@ import me.kiriyaga.nami.feature.gui.components.CategoryPanel;
 import me.kiriyaga.nami.feature.gui.components.ModulePanel;
 import me.kiriyaga.nami.feature.gui.components.NavigatePanel;
 import me.kiriyaga.nami.feature.gui.components.SettingPanel;
-import me.kiriyaga.nami.feature.module.Module;
 import me.kiriyaga.nami.feature.module.ModuleCategory;
+import me.kiriyaga.nami.feature.module.Module;
 import me.kiriyaga.nami.feature.module.impl.client.ClickGuiModule;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.DisconnectedScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.Util;
 
-import java.awt.Point;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.awt.Point;
 
 import static me.kiriyaga.nami.Nami.*;
 
-public class ClickGuiScreen extends BasePanelScreen {
+public class ClickGuiScreen extends Screen {
+    private final Set<Module> expandedModules = new HashSet<>();
+    private final Map<ModuleCategory, Point> categoryPositions = new HashMap<>();
+    private final Map<ModuleCategory, CategoryPanel> categoryPanels = new HashMap<>();
+    private boolean draggingCategory = false;
+    private ModuleCategory draggedModuleCategory = null;
     public float scale = 1;
     private Screen previousScreen = null;
     private static final long FADE_DURATION_MS = 122L;
     private long fadeStartMs = Util.getMeasuringTimeMs();
     private boolean closing = false;
-
-    private TextFieldWidget searchField;
-    private boolean searching = false;
 
     private ClickGuiModule getClickGuiModule() {
         return MODULE_MANAGER.getStorage().getByClass(ClickGuiModule.class);
@@ -43,31 +43,28 @@ public class ClickGuiScreen extends BasePanelScreen {
 
     public ClickGuiScreen() {
         super(Text.literal("NamiGui"));
-        initPanels();
+        syncCategoryPositions();
+        initCategoryPanels();
     }
 
-    @Override
-    protected void initPanels() {
+    private void syncCategoryPositions() {
         int x = 20;
         int y = 20;
         for (ModuleCategory moduleCategory : ModuleCategory.getAll()) {
             if ("hud".equalsIgnoreCase(moduleCategory.getName())) continue;
             categoryPositions.putIfAbsent(moduleCategory, new Point(x, y));
             x += CategoryPanel.WIDTH + 1;
-            categoryPanels.putIfAbsent(moduleCategory, new CategoryPanel(moduleCategory, expandedModules));
         }
         categoryPositions.keySet().removeIf(cat -> !ModuleCategory.getAll().contains(cat));
+    }
+
+    private void initCategoryPanels() {
+        for (ModuleCategory moduleCategory : ModuleCategory.getAll()) {
+            if ("hud".equalsIgnoreCase(moduleCategory.getName())) continue;
+            categoryPanels.putIfAbsent(moduleCategory,
+                    new CategoryPanel(moduleCategory, expandedModules));
+        }
         categoryPanels.keySet().removeIf(cat -> !ModuleCategory.getAll().contains(cat));
-    }
-
-    @Override
-    protected List<Module> getModulesForCategory(ModuleCategory category) {
-        return MODULE_MANAGER.getStorage().getByCategory(category);
-    }
-
-    @Override
-    protected String getSearchText() {
-        return searching ? searchField.getText() : "";
     }
 
     @Override
@@ -75,15 +72,12 @@ public class ClickGuiScreen extends BasePanelScreen {
         super.init();
         fadeStartMs = Util.getMeasuringTimeMs();
         closing = false;
-
-        this.searchField = new TextFieldWidget(this.textRenderer, 0, 0, 150, 18, Text.literal("Search"));
-        this.searchField.setVisible(false);
-        this.addSelectableChild(this.searchField);
     }
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         checkClose();
+        syncCategoryPositions();
 
         if (previousScreen instanceof TitleScreen
                 || previousScreen instanceof DisconnectedScreen
@@ -125,11 +119,21 @@ public class ClickGuiScreen extends BasePanelScreen {
         int scaledMouseX = (int) (mouseX / scale);
         int scaledMouseY = (int) (mouseY / scale);
 
-        renderPanels(context, scaledMouseX, scaledMouseY);
+        for (ModuleCategory moduleCategory : ModuleCategory.getAll()) {
+            if ("hud".equalsIgnoreCase(moduleCategory.getName())) continue;
+
+            Point pos = categoryPositions.get(moduleCategory);
+            if (pos == null) continue;
+
+            CategoryPanel panel = categoryPanels.get(moduleCategory);
+            if (panel != null)
+                panel.render(context, this.textRenderer, pos.x, pos.y, scaledMouseX, scaledMouseY, this.height);
+        }
 
         if (clickGuiModule != null && clickGuiModule.descriptions.get()) {
-            boolean descriptionRendered = false;
-            for (ModuleCategory moduleCategory : categoryPanels.keySet()) {
+            for (ModuleCategory moduleCategory : ModuleCategory.getAll()) {
+                if ("hud".equalsIgnoreCase(moduleCategory.getName())) continue;
+
                 Point pos = categoryPositions.get(moduleCategory);
                 if (pos == null) continue;
 
@@ -138,7 +142,7 @@ public class ClickGuiScreen extends BasePanelScreen {
 
                 double scrollOffset = panel.getScrollOffset();
 
-                List<Module> modules = getModulesForCategory(moduleCategory);
+                List<Module> modules = MODULE_MANAGER.getStorage().getByCategory(moduleCategory);
                 int curY = pos.y + CategoryPanel.HEADER_HEIGHT + ModulePanel.MODULE_SPACING + CategoryPanel.BOTTOM_MARGIN
                         - (int) scrollOffset;
 
@@ -158,8 +162,8 @@ public class ClickGuiScreen extends BasePanelScreen {
                                     0x7F000000);
                             FONT_MANAGER.drawText(context, description, descX, descY, 0xFFFFFFFF, true);
                         }
-                        descriptionRendered = true;
-                        break;
+                        context.getMatrices().popMatrix();
+                        return;
                     }
 
                     curY += ModulePanel.HEIGHT + ModulePanel.MODULE_SPACING;
@@ -167,22 +171,7 @@ public class ClickGuiScreen extends BasePanelScreen {
                         curY += SettingPanel.getSettingsHeight(module);
                     }
                 }
-                if (descriptionRendered) {
-                    break;
-                }
             }
-        }
-
-        if (this.searching) {
-            this.searchField.setX((scaledWidth - this.searchField.getWidth()) / 2);
-            this.searchField.setY(scaledHeight - this.searchField.getHeight() - 5);
-            this.searchField.render(context, scaledMouseX, scaledMouseY, delta);
-        } else {
-            Text searchTextHint = Text.literal("Ctrl+F to search for modules");
-            int textHeight = FONT_MANAGER.getHeight();
-            int x = 1;
-            int y = scaledHeight - textHeight - 1;
-            FONT_MANAGER.drawText(context, searchTextHint, x, y, applyFade(0xFFFFFFFF), true);
         }
 
         context.getMatrices().popMatrix();
@@ -197,9 +186,7 @@ public class ClickGuiScreen extends BasePanelScreen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (this.searching) {
-            if (this.searchField.mouseClicked(mouseX / scale, mouseY / scale, button)) return true;
-        }
+        syncCategoryPositions();
 
         int scaledMouseX = (int) (mouseX / scale);
         int scaledMouseY = (int) (mouseY / scale);
@@ -208,38 +195,78 @@ public class ClickGuiScreen extends BasePanelScreen {
         int navY = 1;
         NAVIGATE_PANEL.mouseClicked(scaledMouseX, scaledMouseY, navX, navY, this.textRenderer);
 
+        for (ModuleCategory moduleCategory : ModuleCategory.getAll()) {
+            if ("hud".equalsIgnoreCase(moduleCategory.getName())) continue;
+
+            Point pos = categoryPositions.get(moduleCategory);
+            if (pos == null) continue;
+
+            if (CategoryPanel.isHeaderHovered(scaledMouseX, scaledMouseY, pos.x, pos.y)) {
+                if (button == 0) {
+                    playClickSound();
+                    draggingCategory = true;
+                    draggedModuleCategory = moduleCategory;
+                    return true;
+                }
+            }
+        }
+
+        if (!draggingCategory) {
+            for (ModuleCategory moduleCategory : ModuleCategory.getAll()) {
+                if ("hud".equalsIgnoreCase(moduleCategory.getName())) continue;
+
+                Point pos = categoryPositions.get(moduleCategory);
+                if (pos == null) continue;
+
+                CategoryPanel panel = categoryPanels.get(moduleCategory);
+                if (panel == null) continue;
+
+                double scrollOffset = panel.getScrollOffset();
+
+                List<Module> modules = MODULE_MANAGER.getStorage().getByCategory(moduleCategory);
+
+                int curY = pos.y + CategoryPanel.HEADER_HEIGHT + ModulePanel.MODULE_SPACING + CategoryPanel.BOTTOM_MARGIN
+                        - (int) scrollOffset;
+
+                for (Module module : modules) {
+                    int modX = pos.x + CategoryPanel.BORDER_WIDTH + SettingPanel.INNER_PADDING;
+
+                    if (ModulePanel.isHovered(scaledMouseX, scaledMouseY, modX, curY)) {
+                        if (button == 0) {
+                            playClickSound();
+                            module.toggle();
+                        } else if (button == 1) {
+                            if (expandedModules.contains(module)) {
+                                expandedModules.remove(module);
+                            } else {
+                                expandedModules.add(module);
+                            }
+                            playClickSound();
+                        } else if (button == 2) {
+                            playClickSound();
+                            module.setDrawn(!module.isDrawn());
+                        }
+                        return true;
+                    }
+
+                    curY += ModulePanel.HEIGHT + ModulePanel.MODULE_SPACING;
+
+                    if (expandedModules.contains(module)) {
+                        if (SettingPanel.mouseClicked(module, scaledMouseX, scaledMouseY, button, modX, curY)) {
+                            return true;
+                        }
+                        curY += SettingPanel.getSettingsHeight(module);
+                    }
+                }
+            }
+        }
+
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
-    public boolean charTyped(char chr, int modifiers) {
-        if (searching) {
-            return this.searchField.charTyped(chr, modifiers);
-        }
-        return super.charTyped(chr, modifiers);
-    }
-
-    @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (searching) {
-            if (keyCode == 256) { // ESC
-                searching = false;
-                searchField.setVisible(false);
-                setFocused(null);
-                return true;
-            }
-            return searchField.keyPressed(keyCode, scanCode, modifiers);
-        }
-
-        if (Screen.hasControlDown() && keyCode == 70) {
-            searching = true;
-            searchField.setVisible(true);
-            searchField.setText("");
-            setFocused(searchField);
-            return true;
-        }
-
-        if (keyCode == MODULE_MANAGER.getStorage().getByClass(ClickGuiModule.class).getKeyBind().get() && MC.currentScreen == this && MC.world != null) {
+        if (keyCode == MODULE_MANAGER.getStorage().getByClass(ClickGuiModule.class).getKeyBind().get() && MC.currentScreen == CLICK_GUI && MC.world != null) {
             beginClose();
             return true;
         }
@@ -258,6 +285,64 @@ public class ClickGuiScreen extends BasePanelScreen {
         fadeStartMs = Util.getMeasuringTimeMs();
     }
 
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+        int scaledMouseX = (int) (mouseX / scale);
+        int scaledMouseY = (int) (mouseY / scale);
+        int scaledDeltaX = (int) (deltaX / scale);
+        int scaledDeltaY = (int) (deltaY / scale);
+
+        if (draggingCategory && draggedModuleCategory != null) {
+            Point currentPos = categoryPositions.get(draggedModuleCategory);
+            if (currentPos != null) {
+                currentPos.translate(scaledDeltaX, scaledDeltaY);
+                return true;
+            }
+        }
+
+        SettingPanel.mouseDragged(scaledMouseX, scaledMouseY);
+        return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        draggingCategory = false;
+        draggedModuleCategory = null;
+        SettingPanel.mouseReleased(mouseX, mouseY, button);
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        int scaledMouseX = (int) (mouseX / scale);
+        int scaledMouseY = (int) (mouseY / scale);
+
+        for (ModuleCategory moduleCategory : ModuleCategory.getAll()) {
+            if ("hud".equalsIgnoreCase(moduleCategory.getName())) continue;
+
+            Point pos = categoryPositions.get(moduleCategory);
+            if (pos == null) continue;
+
+            CategoryPanel panel = categoryPanels.get(moduleCategory);
+            if (panel != null && panel.mouseScrolled(scaledMouseX, scaledMouseY, verticalAmount, pos.x, pos.y, this.height)) {
+                return true;
+            }
+        }
+
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+    }
+
+    @Override
+    public boolean shouldPause() {
+        return false;
+    }
+
+    private void playClickSound() {
+        MC.getSoundManager().play(net.minecraft.client.sound.PositionedSoundInstance.master(
+                net.minecraft.sound.SoundEvents.UI_BUTTON_CLICK, 1.0f
+        ));
+    }
+
     public Screen getPreviousScreen() {
         return previousScreen;
     }
@@ -272,18 +357,24 @@ public class ClickGuiScreen extends BasePanelScreen {
         return closing ? (1.0f - t) : t;
     }
 
-    private void checkClose() {
-        ClickGuiModule clickGuiModule = getClickGuiModule();
-        if (closing && (!clickGuiModule.fade.get() || getFadeFactor() <= 0.0f)) {
+    private void checkClose() { // shitcode ikik
+        ClickGuiModule clickGuiModule = MODULE_MANAGER.getStorage().getByClass(ClickGuiModule.class);
+        if (!closing) return;
+
+        if (clickGuiModule.fade.get()) {
+            if (getFadeFactor() <= 0.0f) {
+                MC.setScreen(null);
+            }
+        } else {
             MC.setScreen(null);
         }
     }
 
     public int applyFade(int argb) {
-        if (!getClickGuiModule().fade.get())
+        if (!MODULE_MANAGER.getStorage().getByClass(ClickGuiModule.class).fade.get())
             return argb;
 
-        if ((previousScreen == HUD_EDITOR || previousScreen == FRIEND) && MC.currentScreen != this)
+        if ((previousScreen == HUD_EDITOR || previousScreen == FRIEND) && MC.currentScreen != CLICK_GUI)
             return argb;
 
         int a = (argb >>> 24) & 0xFF;

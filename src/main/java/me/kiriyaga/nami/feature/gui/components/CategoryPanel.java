@@ -36,7 +36,9 @@ public class CategoryPanel {
         this.expandedModules = expandedModules;
     }
 
-    public void render(DrawContext context, TextRenderer textRenderer, int x, int y, int mouseX, int mouseY, int screenHeight, List<Module> modules, String searchText) {
+    public void render(DrawContext context, TextRenderer textRenderer, int x, int y, int mouseX, int mouseY, int screenHeight) {
+        List<Module> modules = MODULE_MANAGER.getStorage().getByCategory(moduleCategory);
+
         int contentTotalHeight = modules.size() * (ModulePanel.HEIGHT + MODULE_SPACING);
         int basePanelHeight = HEADER_HEIGHT + BOTTOM_MARGIN + MODULE_SPACING + contentTotalHeight + MODULE_SPACING;
 
@@ -78,7 +80,7 @@ public class CategoryPanel {
         int moduleY = contentY - (int) scrollOffset;
         for (Module module : modules) {
             ModulePanel modulePanel = new ModulePanel(module, expandedModules);
-            modulePanel.render(context, textRenderer, x + BORDER_WIDTH + SettingPanel.INNER_PADDING, moduleY, mouseX, mouseY, searchText);
+            modulePanel.render(context, textRenderer, x + BORDER_WIDTH + SettingPanel.INNER_PADDING, moduleY, mouseX, mouseY);
             moduleY += ModulePanel.HEIGHT + MODULE_SPACING;
 
             if (expandedModules.contains(module)) {

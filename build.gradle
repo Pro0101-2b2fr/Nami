@@ -51,8 +51,8 @@ def getGitBranch() {
 }
 
 
-//version = "2.4.5_mc${getGitBranch()}_${getCommitsCount()}_${getGitHash()}"
-version = "2.4.5_mc${getGitBranch()}"
+version = "2.4.5_mc${getGitBranch()}_${getCommitsCount()}_${getGitHash()}"
+//version = "2.4.5_mc${getGitBranch()}"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_21

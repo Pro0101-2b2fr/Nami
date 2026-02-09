@@ -6,7 +6,7 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.Locale;
 
-public record AutoCrystalSnapshot(long tickId, int selfId, Vec3 eyePos, BlockPos playerBlockPos, double placeRange, double breakRange, double minDamage, boolean assumeBestArmor, TargetData[] targets, BlockPos[] candidatePos) {
+public record AutoCrystalSnapshot(long tickId, int selfId, Vec3 eyePos, BlockPos playerBlockPos, double placeRange, double breakRange, double minDamage, boolean assumeBestArmor, boolean facePlace, double facePlaceHealth, TargetData[] targets, BlockPos[] candidatePos) {
     public record TargetData(
             int id,
             Vec3 pos,

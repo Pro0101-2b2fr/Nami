@@ -96,6 +96,8 @@ public class AutoCrystalFeature extends Feature {
     public final BoolSetting noSelfPop = addSetting(new BoolSetting("NoSelfPop", true));
     public final DoubleSetting minDamage = addSetting(new DoubleSetting("MinDamage", 4.0, 0.0, 36.0));
     public final DoubleSetting maxSelfDamage = addSetting(new DoubleSetting("MaxSelfDamage", 12.0, 0.0, 36.0));
+    public final BoolSetting facePlace = addSetting(new BoolSetting("FacePlace", true));
+    public final DoubleSetting facePlaceHealth = addSetting(new DoubleSetting("FacePlaceHealth", 10.0, 0.0, 36.0));
 
     //render
     public final BoolSetting render = addSetting(new BoolSetting("Render", true));
@@ -145,6 +147,8 @@ public class AutoCrystalFeature extends Feature {
         minDamage.setShowCondition(() -> page.get() == Page.DAMAGES);
         maxSelfDamage.setShowCondition(() -> page.get() == Page.DAMAGES);
         assumeBestArmor.setShowCondition(() -> page.get() == Page.DAMAGES);
+        facePlace.setShowCondition(() -> page.get() == Page.DAMAGES);
+        facePlaceHealth.setShowCondition(() -> page.get() == Page.DAMAGES && facePlace.get());
 
         render.setShowCondition(() -> page.get() == Page.RENDER);
     }
@@ -550,8 +554,15 @@ public class AutoCrystalFeature extends Feature {
                 continue;
             }
             if (dmg < snap.minDamage()) {
-                dbg.dmgRejectedMin++;
-                return -1f;
+                if (snap.facePlace() && (t.health() + t.absorption() <= snap.facePlaceHealth())) {
+                    if (dmg < 1.5f) {
+                        dbg.dmgRejectedMin++;
+                        return -1f;
+                    }
+                } else {
+                    dbg.dmgRejectedMin++;
+                    return -1f;
+                }
             }
             total += dmg;
         }
@@ -645,8 +656,14 @@ public class AutoCrystalFeature extends Feature {
 
             if (FRIEND_SERVICE.isFriend(e.getName().getString())) continue;
 
-            if (dmg < minDamage.get())
-                return -1f;
+            if (dmg < minDamage.get()) {
+                if (facePlace.get() && (living.getHealth() + living.getAbsorptionAmount() <= facePlaceHealth.get())) {
+                    if (dmg < 1.5f) // idk if lower would be good too
+                        return -1f;
+                } else {
+                    return -1f;
+                }
+            }
 
             totalDamage += dmg;
         }

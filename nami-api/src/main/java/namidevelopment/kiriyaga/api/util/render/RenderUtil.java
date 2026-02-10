@@ -200,16 +200,16 @@ public class RenderUtil {
 
 
         for (int i = 0; i <= 360; i += 5) {
-            double angle = Math.toRadians(i);
-            double x1 = Math.sin(angle) * radius;
-            double z1 = Math.cos(angle) * radius;
+            double angle = java.lang.Math.toRadians(i);
+            double x1 = java.lang.Math.sin(angle) * radius;
+            double z1 = java.lang.Math.cos(angle) * radius;
 
             buffer.addVertex(matrices.last().pose(), (float) (x + x1), (float) (y + height), (float) (z + z1))
                     .setColor(r, g, b, a);
 
-            double nextAngle = Math.toRadians(i + 5);
-            double x2 = Math.sin(nextAngle) * radius;
-            double z2 = Math.cos(nextAngle) * radius;
+            double nextAngle = java.lang.Math.toRadians(i + 5);
+            double x2 = java.lang.Math.sin(nextAngle) * radius;
+            double z2 = java.lang.Math.cos(nextAngle) * radius;
 
             buffer.addVertex(matrices.last().pose(), (float) (x + x2), (float) (y + height), (float) (z + z2))
                     .setColor(r, g, b, a);

@@ -53,6 +53,7 @@ public class AuraFeature extends Feature {
     public enum Rotate { NORMAL, HOLD, NONE}
     public enum Sprint { NONE, MOTION, PACKET }
     public enum Swap { NONE, REQUIRE, NORMAL, SILENT }
+    public enum RenderMode { BOX, RING }
 
     public final DoubleSetting attackRange = addSetting(new DoubleSetting("Range", 3.00, 1.0, 6.0));
     public final DoubleSetting delay = addSetting(new DoubleSetting("Delay", 0.92, 0.00, 1.00));
@@ -63,6 +64,7 @@ public class AuraFeature extends Feature {
     public final EnumSetting<Rotate> rotate = addSetting(new EnumSetting<>("Rotate", Rotate.NORMAL));
     public final BoolSetting swing = addSetting(new BoolSetting("Swing", true));
     public final BoolSetting render = addSetting(new BoolSetting("Render", true));
+    public final EnumSetting<RenderMode> renderMode = addSetting(new EnumSetting<>("RenderMode", RenderMode.BOX));
 
     private Entity currentTarget = null;
 
@@ -283,7 +285,30 @@ public class AuraFeature extends Feature {
             return;
 
         ColorFeature colorFeature = FEATURE_SERVICE.getStorage().getByClass(ColorFeature.class);
-        drawBox(currentTarget, colorFeature.getStyledGlobalColor(), event.getMatrices(), event.getTickDelta());
+
+        if (renderMode.get() == RenderMode.BOX) {
+            drawBox(currentTarget, colorFeature.getStyledGlobalColor(), event.getMatrices(), event.getTickDelta());
+        } else {
+            drawRing(currentTarget, colorFeature.getStyledGlobalColor(), event.getMatrices(), event.getTickDelta());
+        }
+    }
+
+    private void drawRing(Entity entity, Color color, PoseStack matrices, float partialTicks) {
+        double interpX = entity.xOld + (entity.getX() - entity.xOld) * partialTicks;
+        double interpY = entity.yOld + (entity.getY() - entity.yOld) * partialTicks;
+        double interpZ = entity.zOld + (entity.getZ() - entity.zOld) * partialTicks;
+
+        Vec3 camera = MC.gameRenderer.getMainCamera().position();
+        double x = interpX - camera.x();
+        double y = interpY - camera.y();
+        double z = interpZ - camera.z();
+
+        // Sine wave for height: ranges from 0 to entity height
+        double h = entity.getBoundingBox().maxY - entity.getBoundingBox().minY;
+        double time = System.currentTimeMillis() / 1000.0;
+        double heightOffset = (Math.sin(time * 3.0) + 1.0) / 2.0 * h;
+
+        RenderUtil.drawRing(matrices, x, y, z, 0.6, heightOffset, color, 2.0f);
     }
 
     private void drawBox(Entity entity, Color color, PoseStack matrices, float partialTicks) {

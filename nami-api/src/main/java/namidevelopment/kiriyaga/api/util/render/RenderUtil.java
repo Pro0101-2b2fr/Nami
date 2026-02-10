@@ -187,4 +187,34 @@ public class RenderUtil {
     public static boolean projectionVisible(Vec3 vec3d) {
         return vec3d.z > 0 && vec3d.z < 1;
     }
+
+    public static void drawRing(PoseStack matrices, double x, double y, double z, double radius, double height,
+                                Color color, float lineWidth) {
+        Tesselator tesselator = Tesselator.getInstance();
+        BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
+
+        float r = color.getRed() / 255.0f;
+        float g = color.getGreen() / 255.0f;
+        float b = color.getBlue() / 255.0f;
+        float a = color.getAlpha() / 255.0f;
+
+
+        for (int i = 0; i <= 360; i += 5) {
+            double angle = java.lang.Math.toRadians(i);
+            double x1 = java.lang.Math.sin(angle) * radius;
+            double z1 = java.lang.Math.cos(angle) * radius;
+
+            buffer.addVertex(matrices.last().pose(), (float) (x + x1), (float) (y + height), (float) (z + z1))
+                    .setColor(r, g, b, a);
+
+            double nextAngle = java.lang.Math.toRadians(i + 5);
+            double x2 = java.lang.Math.sin(nextAngle) * radius;
+            double z2 = java.lang.Math.cos(nextAngle) * radius;
+
+            buffer.addVertex(matrices.last().pose(), (float) (x + x2), (float) (y + height), (float) (z + z2))
+                    .setColor(r, g, b, a);
+        }
+
+        Layers.getGlobalQuads().draw(buffer.buildOrThrow());
+    }
 }

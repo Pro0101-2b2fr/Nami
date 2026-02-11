@@ -8,6 +8,7 @@ import namidevelopment.kiriyaga.api.event.impl.PacketReceiveEvent;
 import namidevelopment.kiriyaga.api.event.impl.PreTickEvent;
 import namidevelopment.kiriyaga.api.model.feature.FeatureCategory;
 import namidevelopment.kiriyaga.api.model.feature.Feature;
+import namidevelopment.kiriyaga.api.util.entity.PlayerUtils;
 import namidevelopment.kiriyaga.nami.impl.feature.miscellaneous.AutoReconnectFeature;
 import namidevelopment.kiriyaga.api.annotation.RegisterFeature;
 import namidevelopment.kiriyaga.nami.impl.feature.exploits.IllegalDisconnectFeature;
@@ -28,6 +29,7 @@ import static namidevelopment.kiriyaga.api.NamiApi.*;
 public class AutoLogFeature extends Feature {
 
     public final IntSetting health = addSetting(new IntSetting("OnHealth", 12, 0, 36));
+    public final IntSetting onTotems = addSetting(new IntSetting("OnTotems", 0, 0, 10));
     public final BoolSetting onRender = addSetting(new BoolSetting("OnRender", false));
     public final BoolSetting packet = addSetting(new BoolSetting("Packet", false));
     public final BoolSetting onPop = addSetting(new BoolSetting("OnPop", false));
@@ -55,7 +57,7 @@ public class AutoLogFeature extends Feature {
         if (onLevel.get() != 0) {
 
             if (triggeredLevel && player.getBlockY() <= onLevel.get()) {
-                logOut("Too low level: §7" + player.getBlockY() + "§f Blocks");
+                logOut("Too low level: {global}" + player.getBlockY() + "{white} Blocks");
                 triggeredLevel = false;
                 return;
             }
@@ -66,13 +68,18 @@ public class AutoLogFeature extends Feature {
         }
 
         if (player.getHealth() <= health.get() && health.get() != 0) {
-            logOut("Low health: §7" + player.getHealth() + "§f HP");
+            logOut("Low health: {global}" + player.getHealth() + "{white} HP");
+            return;
+        }
+
+        if (PlayerUtils.getTotemCount() <= onTotems.get()) {
+            logOut("Not enough totems: {global}" + PlayerUtils.getTotemCount() + "{white} Totems left");
             return;
         }
 
         if (onRender.get()) {
             for (Entity other : EntityUtils.getOtherPlayers()) {
-                if (!FRIEND_SERVICE.isFriend(other.getName().getString())) {
+                if (!SOCIALS_SERVICE.isFriend(other.getName().getString())) {
                     double distance = player.distanceTo(other);
                     logOut("Untrusted player in range: " + player.getName().toString() + " (" + String.format("%.1f", distance) + " blocks)");
                     return;
@@ -108,7 +115,7 @@ public class AutoLogFeature extends Feature {
             if (player == MC.player)
                 return;
 
-            if (FRIEND_SERVICE.isFriend(player.getName().getString()))
+            if (SOCIALS_SERVICE.isFriend(player.getName().getString()))
                 return;
 
             double distance = MC.player.distanceTo(player);
@@ -127,7 +134,7 @@ public class AutoLogFeature extends Feature {
             EVENT_SERVICE.post(new DissconectEvent());} else {
             if (MC.getConnection() != null) {
                 triggerToggle();
-                MC.getConnection().handleDisconnect(new ClientboundDisconnectPacket(Component.nullToEmpty("AutoLog: §7" + reason)));
+                MC.getConnection().handleDisconnect(new ClientboundDisconnectPacket(CAT_FORMAT.format("AutoLog: " + reason)));
             }
         }
     }

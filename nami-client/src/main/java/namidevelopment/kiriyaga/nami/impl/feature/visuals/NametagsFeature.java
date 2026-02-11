@@ -108,7 +108,7 @@ public class NametagsFeature extends Feature {
 
             float width = FONT_SERVICE.getWidth(text);
 
-            String colored = FRIEND_SERVICE.isFriend(ign) ? "{friend}" + text : text;
+            String colored = SOCIALS_SERVICE.isFriend(ign) ? "{friend}" + text : text;
 
             if (health.get())
                 colored = colored.replace(" " + EntityUtils.getHealthNumber(ent),

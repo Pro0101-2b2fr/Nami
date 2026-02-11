@@ -329,7 +329,6 @@ public class SpeedMineFeature extends Feature {
             int slot = getSlot(task.getBlockState());
             if (slot != MC.player.getInventory().getSelectedSlot()) {
                 if (currentTask.brokenCount < 2 || !currentTask.isInstantRemine())
-
                     if (swap.get() != Swap.SILENT)
                         shouldSwapBack = MC.player.getInventory().getSelectedSlot();
 

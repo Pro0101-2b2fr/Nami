@@ -385,7 +385,7 @@ public class ClickGuiScreen extends Screen {
         if (!FEATURE_SERVICE.getStorage().getByClass(ClickGuiFeature.class).fade.get())
             return argb;
 
-        if ((previousScreen == HUD_EDITOR_SCREEN || previousScreen == FRIEND_SCREEN) && MC.screen != CLICK_GUI_SCREEN)
+        if ((previousScreen == HUD_EDITOR_SCREEN || previousScreen == SOCIALS_SCREEN) && MC.screen != CLICK_GUI_SCREEN)
             return argb;
 
         int a = (argb >>> 24) & 0xFF;

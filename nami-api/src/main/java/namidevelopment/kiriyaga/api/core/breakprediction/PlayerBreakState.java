@@ -238,4 +238,17 @@ public class PlayerBreakState {
             return speed;
         }
     }
+
+    public boolean isInBreakProgress(BlockPos pos) {
+        if (current.isActive() && current.getBlockPos().equals(pos)) return true;
+        if (doubleMine.isActive() && doubleMine.getBlockPos().equals(pos)) return true;
+        return false;
+    }
+
+    public boolean isBreaking(BlockPos pos) {
+        if (current.getBlockPos() != null && current.getBlockPos().equals(pos) && current.getProgress() > 0)
+            return true;
+
+        return doubleMine.getBlockPos() != null && doubleMine.getBlockPos().equals(pos) && doubleMine.getProgress() > 0;
+    }
 }

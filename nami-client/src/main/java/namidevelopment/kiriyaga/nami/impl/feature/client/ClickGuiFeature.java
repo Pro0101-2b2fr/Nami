@@ -19,6 +19,7 @@ public class ClickGuiFeature extends Feature {
     public final BoolSetting fade = addSetting(new BoolSetting("Fade", true));
     public final BoolSetting blur = addSetting(new BoolSetting("Blur", false));
     public final BoolSetting background = addSetting(new BoolSetting("Background", true));
+    public final BoolSetting gear = addSetting(new BoolSetting("Gear", true));
 
     public ClickGuiFeature() {
         super("ClickGui", "Opens client UI.", FeatureCategory.of("Client"), "clickgui","click", "gui", "menu", "clckgui");

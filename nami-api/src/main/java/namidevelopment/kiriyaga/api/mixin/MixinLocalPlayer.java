@@ -5,6 +5,7 @@ import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import namidevelopment.kiriyaga.api.contract.FeatureContractService;
 import namidevelopment.kiriyaga.api.contract.feature.RotationsFeatureConfig;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.util.Mth;
 import org.joml.Vector2f;
 import org.joml.Vector2i;
 import org.spongepowered.asm.mixin.*;
@@ -74,7 +75,8 @@ public abstract class MixinLocalPlayer {
             this.originalSilentPitch = MC.player.getXRot();
             this.xRotLast -= 4;
             float f = (float)((Math.random() * 2.0 - 1.0) * 0.001f);
-            MC.player.setXRot(this.originalSilentPitch + f);
+            float f2 = Mth.clamp(this.originalSilentPitch + f, -90.0F, 90.0F);
+            MC.player.setXRot(f2);
         }
     }
 

@@ -57,6 +57,15 @@ public class TextBoxWidget {
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (!focused) return false;
+        if (keyCode == GLFW.GLFW_KEY_V && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
+            String clipboard = MC.keyboardHandler.getClipboard();
+            if (clipboard != null && !clipboard.isEmpty()) {
+                clipboard = clipboard.replaceAll("[\\p{Cntrl}&&[^\n\t]]", "");
+                buffer.append(clipboard);
+            }
+            return true;
+        }
+
         if (keyCode == GLFW.GLFW_KEY_ENTER) {
             if (onEnter != null) onEnter.run();
             focused = false;

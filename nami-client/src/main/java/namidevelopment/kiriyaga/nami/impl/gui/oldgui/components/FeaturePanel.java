@@ -17,18 +17,27 @@ public class FeaturePanel {
     public static final int HEIGHT = 13;
     public static final int PADDING = 3;
     public static final int Feature_SPACING = 1;
+    private static final int GEAR_PADDING = 5;
 
     private final Feature Feature;
-
-    private ColorFeature getColorFeature() {
-        return FEATURE_SERVICE.getStorage().getByClass(ColorFeature.class);
-    }
 
     public FeaturePanel(Feature Feature) {
         this.Feature = Feature;
     }
 
-    public void render(GuiGraphics context, Font textRenderer, int x, int y, int mouseX, int mouseY) {
+    public static boolean isHovered(double mouseX, double mouseY, int x, int y) {
+        return mouseX >= x && mouseX <= x + WIDTH && mouseY >= y && mouseY <= y + HEIGHT;
+    }
+
+    private ClickGuiFeature getClickGuiFeature() {
+        return FEATURE_SERVICE.getStorage().getByClass(ClickGuiFeature.class);
+    }
+
+    private ColorFeature getColorFeature() {
+        return FEATURE_SERVICE.getStorage().getByClass(ColorFeature.class);
+    }
+
+    public void render(GuiGraphics context,Font textRenderer, int x, int y, int mouseX, int mouseY) {
         boolean hovered = isHovered(mouseX, mouseY, x, y);
 
         Color primary = getColorFeature().getStyledGlobalColor();
@@ -39,21 +48,19 @@ public class FeaturePanel {
         if (hovered)
             fillCol = ColorUtils.brighten(fillCol, 20);
 
-         context.fill(x, y, x + WIDTH, y + HEIGHT, CLICK_GUI_SCREEN.applyFade(toRGBA(fillCol)));
+        context.fill(x, y, x + WIDTH, y + HEIGHT, CLICK_GUI_SCREEN.applyFade(toRGBA(fillCol)));
 
-        int textY = (y + (HEIGHT - 8) / 2 ) +1;
+        int textY = (y + (HEIGHT - 8) / 2) + 1;
         int baseTextX = x + PADDING + (hovered ? 1 : 0);
-        FONT_SERVICE.drawText(
-                context,
-                Feature.getName(),
-                baseTextX,
-                textY,
-                CLICK_GUI_SCREEN.applyFade(toRGBA(textCol)),
-                true
-        );
-    }
+        FONT_SERVICE.drawText(context, Feature.getName(), baseTextX, textY, CLICK_GUI_SCREEN.applyFade(toRGBA(textCol)), true);
 
-    public static boolean isHovered(double mouseX, double mouseY, int x, int y) {
-        return mouseX >= x && mouseX <= x + WIDTH && mouseY >= y && mouseY <= y + HEIGHT;
+        ClickGuiFeature clickGuiFeature = getClickGuiFeature();
+        if (clickGuiFeature != null && clickGuiFeature.gear.get()) {
+            boolean expanded = Feature.isExpanded();
+            String gear = expanded ? "-" : "+";
+            int gearWidth = FONT_SERVICE.getWidth(gear) + GEAR_PADDING;
+
+            FONT_SERVICE.drawText(context, gear, baseTextX + WIDTH - gearWidth, textY, CLICK_GUI_SCREEN.applyFade(toRGBA(textCol)),true);
+        }
     }
 }

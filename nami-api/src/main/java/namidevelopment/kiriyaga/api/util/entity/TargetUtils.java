@@ -31,7 +31,7 @@ public class TargetUtils {
                         double distSq = e.distanceToSqr(MC.player);
                         if (distSq > targetFeature.getTargetRange() * targetFeature.getTargetRange()) return false;
 
-                        return (targetFeature.targetPlayers() && e instanceof Player && !FRIEND_SERVICE.isFriend(e.getName().getString()))
+                        return (targetFeature.targetPlayers() && e instanceof Player && !SOCIALS_SERVICE.isFriend(e.getName().getString()))
                                 || (targetFeature.targetHostiles() && HostileUtils.isHostile(e))
                                 || (targetFeature.targetNeutrals() && HostileUtils.isNeutral(e))
                                 || (targetFeature.targetPassives() && HostileUtils.isPassive(e));
@@ -59,7 +59,7 @@ public class TargetUtils {
 
             case SMART:
                 List<Entity> players = candidates.stream()
-                        .filter(e -> e instanceof Player && !FRIEND_SERVICE.isFriend(e.getName().getString()))
+                        .filter(e -> e instanceof Player && !SOCIALS_SERVICE.isFriend(e.getName().getString()))
                         .sorted(Comparator.comparingDouble(e -> e.distanceToSqr(MC.player)))
                         .toList();
 

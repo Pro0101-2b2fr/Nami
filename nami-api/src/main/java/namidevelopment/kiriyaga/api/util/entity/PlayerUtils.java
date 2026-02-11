@@ -75,4 +75,18 @@ public class PlayerUtils {
         }
         return false;
     }
+
+    public static int getTotemCount(){
+        int totemCount = 0;
+        for (ItemStack stack : MC.player.getInventory().getNonEquipmentItems()) {
+            if (stack.getItem() == Items.TOTEM_OF_UNDYING) {
+                totemCount += stack.getCount();
+            }
+        }
+        ItemStack offHandStack = MC.player.getOffhandItem();
+        if (offHandStack.getItem() == Items.TOTEM_OF_UNDYING) {
+            totemCount += offHandStack.getCount();
+        }
+        return totemCount;
+    }
 }

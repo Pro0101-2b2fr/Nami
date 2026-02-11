@@ -440,6 +440,10 @@ public class InteractionUtils {
     }
 
     public static boolean airPlace(BlockPos pos, Item item, boolean swapBack, double range, boolean rotate, boolean grim, boolean simulate, boolean swing, String rotationId, boolean multitask) {
+        return airPlace(pos, Direction.UP, item, swapBack, range, rotate, grim, simulate, swing, rotationId, multitask);
+    }
+
+        public static boolean airPlace(BlockPos pos, Direction direction, Item item, boolean swapBack, double range, boolean rotate, boolean grim, boolean simulate, boolean swing, String rotationId, boolean multitask) {
         if (!MC.level.getBlockState(pos).canBeReplaced())
             return false;
 

@@ -12,6 +12,7 @@ import namidevelopment.kiriyaga.api.model.setting.EnumSetting;
 import namidevelopment.kiriyaga.api.model.setting.IntSetting;
 import namidevelopment.kiriyaga.api.util.EnchantmentUtils;
 import namidevelopment.kiriyaga.api.util.InventoryUtils;
+import namidevelopment.kiriyaga.api.util.entity.PlayerUtils;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.ItemStack;
@@ -59,16 +60,8 @@ public class AutoTotemFeature extends Feature {
         if (MC.level == null || MC.player == null) return;
         this.clearDisplayInfo();
 
-        int totemCount = 0;
-        for (ItemStack stack : MC.player.getInventory().getNonEquipmentItems()) {
-            if (stack.getItem() == Items.TOTEM_OF_UNDYING) {
-                totemCount += stack.getCount();
-            }
-        }
-        ItemStack offHandStack = MC.player.getOffhandItem();
-        if (offHandStack.getItem() == Items.TOTEM_OF_UNDYING) {
-            totemCount += offHandStack.getCount();
-        }
+        int totemCount = PlayerUtils.getTotemCount();
+
         this.addDisplayInfo(String.valueOf(totemCount));
 
         attemptPlaceOffhand();

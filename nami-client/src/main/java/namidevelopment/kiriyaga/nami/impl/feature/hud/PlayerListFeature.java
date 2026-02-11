@@ -80,7 +80,7 @@ public class PlayerListFeature extends HudElementFeature {
         }
 
         String name = entity.getName().getString();
-        if (FRIEND_SERVICE.isFriend(name)) sb.append("{friend}").append(name);
+        if (SOCIALS_SERVICE.isFriend(name)) sb.append("{friend}").append(name);
         else sb.append("{white}").append(name);
 
         if (showDistance.get()) {

@@ -1,5 +1,6 @@
 package namidevelopment.kiriyaga.nami.impl.feature.combat.component;
 
+import namidevelopment.kiriyaga.api.core.breakprediction.PlayerBreakState;
 import namidevelopment.kiriyaga.api.core.rotation.model.RotationRequest;
 import namidevelopment.kiriyaga.api.event.impl.PreTickEvent;
 import namidevelopment.kiriyaga.api.event.impl.Render3DEvent;
@@ -7,12 +8,14 @@ import namidevelopment.kiriyaga.api.model.feature.Feature;
 import namidevelopment.kiriyaga.api.model.setting.BoolSetting;
 import namidevelopment.kiriyaga.api.model.setting.DoubleSetting;
 import namidevelopment.kiriyaga.api.model.setting.IntSetting;
+import namidevelopment.kiriyaga.api.util.BlockUtils;
 import namidevelopment.kiriyaga.api.util.InteractionUtils;
 import namidevelopment.kiriyaga.api.util.render.RenderUtil;
 import namidevelopment.kiriyaga.nami.impl.feature.client.ColorFeature;
 import com.mojang.blaze3d.vertex.PoseStack;
 import namidevelopment.kiriyaga.nami.impl.feature.combat.autocrystal.AutoCrystalFeature;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
 import net.minecraft.world.item.BlockItem;
@@ -42,6 +45,7 @@ public class TrapComponent {
     public final BoolSetting swapBack;
     public final BoolSetting multiTask;
     public final BoolSetting simulate;
+    public final BoolSetting antiBreak;
     public final BoolSetting foundation;
     public final BoolSetting swing;
     public final BoolSetting render;
@@ -54,6 +58,7 @@ public class TrapComponent {
 
     private int cooldown = 0;
     private final List<BlockPos> targetPositions = new ArrayList<>();
+    private final List<BlockPos> placedPositions = new ArrayList<>();
 
     public TrapComponent(Feature feature) {
         range = feature.addSetting(new DoubleSetting("Range", 4.50, 1.0, 6.0));
@@ -66,6 +71,7 @@ public class TrapComponent {
         swapBack = feature.addSetting(new BoolSetting("SwapBack", true));
         multiTask = feature.addSetting(new BoolSetting("MultiTask", false));
         simulate = feature.addSetting(new BoolSetting("Simulate", false));
+        antiBreak = feature.addSetting(new BoolSetting("AntiBreak", false));
         foundation = feature.addSetting(new BoolSetting("Foundation", false));
         swing = feature.addSetting(new BoolSetting("Swing", true));
         render = feature.addSetting(new BoolSetting("Render", true));
@@ -91,6 +97,7 @@ public class TrapComponent {
     public void onDisable() {
         cooldown = 0;
         targetPositions.clear();
+        placedPositions.clear();
     }
 
     public List<BlockPos> getTargetPositions() {
@@ -99,6 +106,16 @@ public class TrapComponent {
 
     public void onTick(PreTickEvent event, Feature owner, List<BlockPos> newTargets) {
         if (MC.player == null || MC.level == null) return;
+
+        if (simulate.get() && !placedPositions.isEmpty()) {
+            Item handItem = MC.player.getMainHandItem().getItem();
+
+            for (BlockPos pos : placedPositions) {
+                InteractionUtils.interactBlockAt(pos, handItem, null, swapBack.get(), multiTask.get(), range.get(), rotate.get(), strictDirection.get(), false, swing.get(), owner.getName()+"_interact");
+            }
+
+            placedPositions.clear();
+        }
 
         targetPositions.clear();
         if (newTargets != null) targetPositions.addAll(newTargets);
@@ -115,29 +132,57 @@ public class TrapComponent {
                     AABB blockBox = new AABB(pos);
                     if (blockBox.intersects(crystalBox)) {
                         if (crystal.tickCount >= attackAge.get())
-                            doBreak(crystal);
+                            doBreak(crystal, owner);
                         break;
                     }
                 }
             }
         }
 
+        if (antiBreak.get() && !targetPositions.isEmpty()) {
+            List<BlockPos> extraTargets = new ArrayList<>();
+            for (BlockPos pos : targetPositions) {
+                boolean breaking = false;
+                for (PlayerBreakState state : BREAKPREDICT_SERVICE.all()) {
+                    if (state == null) continue;
+
+                    if (state.isBreaking(pos)) {
+                        breaking = true;
+                        break;
+                    }
+                }
+
+                if (!breaking) continue;
+
+                for (Direction dir : Direction.values()) {
+                    if (dir == Direction.DOWN) continue;
+
+                    BlockPos around = pos.relative(dir);
+
+                    if (targetPositions.contains(around)) continue;
+                    if (extraTargets.contains(around)) continue;
+
+                    extraTargets.add(around);
+                }
+            }
+
+            targetPositions.addAll(extraTargets);
+        }
+
         int blocksPlaced = 0;
 
         for (BlockPos pos : targetPositions) {
-            if (!MC.level.getBlockState(pos).canBeReplaced()) continue;
 
             if (foundation.get()) {
                 BlockPos foundation = pos.below();
-                if (MC.level.getBlockState(foundation).canBeReplaced()) {
-                    if (place(foundation, getSlot(), airPlace.get(), grim.get(), owner)) {
-                        blocksPlaced++;
-                        if (blocksPlaced >= shiftTicks.get()) break;
-                    }
+                if (place(foundation, getSlot(), airPlace.get(), grim.get(), owner)) {
+                    blocksPlaced++;
+                    if (blocksPlaced >= shiftTicks.get()) break;
                 }
             }
 
             if (place(pos, getSlot(), airPlace.get(), grim.get(), owner)) {
+                placedPositions.add(pos);
                 blocksPlaced++;
                 if (blocksPlaced >= shiftTicks.get()) break;
             }
@@ -157,6 +202,9 @@ public class TrapComponent {
         Color color = colorFeature.getStyledGlobalColor();
 
         for (BlockPos pos : targetPositions) {
+            if (!MC.level.getBlockState(pos).canBeReplaced())
+                continue;
+
             AABB box = new AABB(pos);
             RenderUtil.drawBoxLines(box, color, true, true, 1.5f);
         }
@@ -193,12 +241,12 @@ public class TrapComponent {
 
     private boolean place(BlockPos pos, Item item, boolean airPlace, boolean grim, Feature owner) {
         if (airPlace)
-            return InteractionUtils.airPlace(pos, item, swapBack.get(), range.get(), rotate.get(), grim, simulate.get(), swing.get(), owner.getName(), multiTask.get());
+            return InteractionUtils.airPlace(pos, Direction.DOWN, item, swapBack.get(), range.get(), rotate.get(), grim, simulate.get(), swing.get(), owner.getName()+"_airplace", multiTask.get());
 
-        return InteractionUtils.placeBlock(pos, item, swapBack.get(), range.get(), rotate.get(), strictDirection.get(), simulate.get(), swing.get(), owner.getName(), multiTask.get());
+        return InteractionUtils.placeBlock(pos, item, swapBack.get(), range.get(), rotate.get(), strictDirection.get(), simulate.get(), swing.get(), owner.getName()+"_place", multiTask.get());
     }
 
-    private void doBreak(EndCrystal target) {
+    private void doBreak(EndCrystal target, Feature owner) {
         if (target == null) return;
 
         if (!attackMultiTask.get() && MC.player.isUsingItem()) return;
@@ -210,7 +258,7 @@ public class TrapComponent {
             float yaw = (float) getYawToVec(MC.player, pos);
             float pitch = (float) getPitchToVec(MC.player, pos);
 
-            ROTATION_SERVICE.getRequestHandler().submit(new RotationRequest(AutoCrystalFeature.class.getName(), 9, yaw, pitch));
+            ROTATION_SERVICE.getRequestHandler().submit(new RotationRequest(owner.getName()+"_attack", 9, yaw, pitch));
 
             rotated = true;
         }

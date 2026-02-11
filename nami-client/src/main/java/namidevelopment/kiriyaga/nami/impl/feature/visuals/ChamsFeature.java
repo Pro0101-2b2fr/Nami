@@ -14,7 +14,7 @@ import net.minecraft.world.entity.player.Player;
 import java.awt.*;
 
 import static namidevelopment.kiriyaga.api.NamiApi.FEATURE_SERVICE;
-import static namidevelopment.kiriyaga.api.NamiApi.FRIEND_SERVICE;
+import static namidevelopment.kiriyaga.api.NamiApi.SOCIALS_SERVICE;
 
 @RegisterFeature
 public class ChamsFeature extends Feature {
@@ -34,7 +34,7 @@ public class ChamsFeature extends Feature {
 
         if (entity instanceof Player player) {
             if (!showPlayers.get()) return null;
-            return (FRIEND_SERVICE.isFriend(player.getName().getString()) ? FEATURE_SERVICE.getStorage().getByClass(ColorFeature.class).getFriendTextColor(alpha.get()) : FEATURE_SERVICE.getStorage().getByClass(ColorFeature.class).getStyledGlobalColor(alpha.get()));
+            return (SOCIALS_SERVICE.isFriend(player.getName().getString()) ? FEATURE_SERVICE.getStorage().getByClass(ColorFeature.class).getFriendTextColor(alpha.get()) : FEATURE_SERVICE.getStorage().getByClass(ColorFeature.class).getStyledGlobalColor(alpha.get()));
         }
 
         if (showPeacefuls.get() && EntityUtils.getEntities(EntityUtils.EntityTypeCategory.PASSIVE).contains(entity)) return ColorUtils.COLOR_PASSIVE;

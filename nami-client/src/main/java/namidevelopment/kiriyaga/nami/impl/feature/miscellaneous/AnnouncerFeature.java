@@ -27,6 +27,7 @@ public class AnnouncerFeature extends Feature {
 
     public final BoolSetting joinAnnounce = addSetting(new BoolSetting("JoinAnnounce", false));
     public final BoolSetting joinFriends = addSetting(new BoolSetting("JoinAnnounceFriends", "Friends", true));
+    public final BoolSetting joinEnemy = addSetting(new BoolSetting("JoinAnnounceEnemy", "Enemy", false));
     public final BoolSetting joinEveryone = addSetting(new BoolSetting("JoinAnnounceOthers", "Others", false));
     public final BoolSetting visualRange = addSetting(new BoolSetting("VisualRange", false));
     public final BoolSetting rangeFriends = addSetting(new BoolSetting("VisualRangeFriends", "Friends", true));
@@ -50,15 +51,17 @@ public class AnnouncerFeature extends Feature {
     }
 
     private boolean validateJoin(String name) {
-        boolean b = FRIEND_SERVICE.isFriend(name);
-        if (joinEveryone.get() && joinFriends.get()) return true;
+        boolean b = SOCIALS_SERVICE.isFriend(name);
+        boolean b1 = SOCIALS_SERVICE.isEnemy(name);
+        if (joinEveryone.get() && joinFriends.get() && joinEnemy.get()) return true;
         if (joinFriends.get() && b) return true;
+        if (joinEnemy.get() && b1) return true;
         if (joinEveryone.get() && !b) return true;
         return false;
     }
 
     private boolean validateVisualRange(String name) {
-        boolean b = FRIEND_SERVICE.isFriend(name);
+        boolean b = SOCIALS_SERVICE.isFriend(name);
         if (rangeEveryone.get() && rangeFriends.get()) return true;
         if (rangeFriends.get() && b) return true;
         if (rangeEveryone.get() && !b) return true;
@@ -70,7 +73,7 @@ public class AnnouncerFeature extends Feature {
         if (MC.player == null) return false;
         if (player == MC.player)
             return selfPop.get();
-        boolean friend = FRIEND_SERVICE.isFriend(player.getName().getString());
+        boolean friend = SOCIALS_SERVICE.isFriend(player.getName().getString());
         if (friend) return friendsPop.get();
         return othersPop.get();
     }

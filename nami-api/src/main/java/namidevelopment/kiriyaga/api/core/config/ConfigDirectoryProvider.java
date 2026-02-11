@@ -22,8 +22,8 @@ public class ConfigDirectoryProvider {
         return new File(baseDir, "configs");
     }
 
-    public File getFriendFile() {
-        return new File(baseDir, "friends.json");
+    public File getSocialsFile() {
+        return new File(baseDir, "socials.json");
     }
 
     public File getBaseDir() {

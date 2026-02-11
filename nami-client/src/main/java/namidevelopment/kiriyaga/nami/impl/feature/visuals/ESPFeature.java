@@ -167,7 +167,7 @@ public class ESPFeature extends Feature {
 
         if (entity instanceof Player player) {
             if (!esp.showPlayers.get()) return null;
-            return (FRIEND_SERVICE.isFriend(player.getName().getString()) ? FEATURE_SERVICE.getStorage().getByClass(ColorFeature.class).getFriendColor() : FEATURE_SERVICE.getStorage().getByClass(ColorFeature.class).getStyledGlobalColor());
+            return (SOCIALS_SERVICE.isFriend(player.getName().getString()) ? FEATURE_SERVICE.getStorage().getByClass(ColorFeature.class).getFriendColor() : FEATURE_SERVICE.getStorage().getByClass(ColorFeature.class).getStyledGlobalColor());
         }
 
         if (esp.showPeacefuls.get() && EntityUtils.getEntities(EntityUtils.EntityTypeCategory.PASSIVE).contains(entity)) return ColorUtils.COLOR_PASSIVE;

@@ -31,7 +31,7 @@ public class CoordinatesFeature extends HudElementFeature {
 
     @Override
     public Component getDisplayText() {
-        if (layout.get() == LayoutMode.VERTICAL) return null; // use getTextElements()
+        if (layout.get() == LayoutMode.VERTICAL) return null;
 
         if (MC.player == null || MC.level == null) {
             return CAT_FORMAT.format("{global}XYZ: {white}NaN");
@@ -70,7 +70,7 @@ public class CoordinatesFeature extends HudElementFeature {
     @Override
     public List<TextElement> getTextElements() {
         if (layout.get() != LayoutMode.VERTICAL) {
-            return super.getTextElements(); // fallback to getDisplayText()
+            return super.getTextElements();
         }
 
         List<TextElement> lines = new ArrayList<>();

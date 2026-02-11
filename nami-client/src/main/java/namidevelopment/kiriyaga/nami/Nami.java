@@ -5,7 +5,7 @@ import namidevelopment.kiriyaga.nami.impl.gui.newgui.component.NavigatePanelComp
 import namidevelopment.kiriyaga.nami.impl.gui.newgui.screen.ConfigScreen;
 import namidevelopment.kiriyaga.nami.impl.gui.newgui.screen.PluginScreen;
 import namidevelopment.kiriyaga.nami.impl.gui.oldgui.screen.ClickGuiScreen;
-import namidevelopment.kiriyaga.nami.impl.gui.newgui.screen.FriendScreen;
+import namidevelopment.kiriyaga.nami.impl.gui.newgui.screen.SocialsScreen;
 import namidevelopment.kiriyaga.nami.impl.gui.oldgui.screen.HudEditorScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
@@ -41,7 +41,7 @@ public class Nami implements ClientModInitializer {
 
     public static ClickGuiScreen CLICK_GUI_SCREEN;
     public static HudEditorScreen HUD_EDITOR_SCREEN;
-    public static FriendScreen FRIEND_SCREEN;
+    public static SocialsScreen SOCIALS_SCREEN;
     public static ConfigScreen CONFIG_SCREEN;
     public static PluginScreen PLUGIN_SCREEN;
     public static NavigatePanelComponent NAVIGATE_PANEL;
@@ -55,7 +55,7 @@ public class Nami implements ClientModInitializer {
 
         CLICK_GUI_SCREEN = new ClickGuiScreen();
         HUD_EDITOR_SCREEN = new HudEditorScreen();
-        FRIEND_SCREEN = new FriendScreen();
+        SOCIALS_SCREEN = new SocialsScreen();
         CONFIG_SCREEN = new ConfigScreen();
         PLUGIN_SCREEN = new PluginScreen();
 
@@ -69,7 +69,7 @@ public class Nami implements ClientModInitializer {
             CONFIG_SERVICE.loadPluginsState();
 
             CONFIG_SERVICE.loadFeatures();
-            CONFIG_SERVICE.loadFriends();
+            CONFIG_SERVICE.loadSocials();
 
             if (CONFIG_SERVICE.loadName() == null)
                 CONFIG_SERVICE.saveName(DISPLAY_NAME);

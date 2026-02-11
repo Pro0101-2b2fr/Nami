@@ -10,6 +10,7 @@ import namidevelopment.kiriyaga.api.core.font.FontService;
 import namidevelopment.kiriyaga.api.core.inventory.InventoryService;
 import namidevelopment.kiriyaga.api.core.macro.MacroService;
 import namidevelopment.kiriyaga.api.core.rotation.RotationService;
+import namidevelopment.kiriyaga.api.core.socials.SocialsService;
 import namidevelopment.kiriyaga.api.util.CatStyles;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
@@ -41,7 +42,7 @@ public class NamiApi implements ClientModInitializer {
     public static final FontService FONT_SERVICE = new FontService();
     public static final CommandService COMMAND_SERVICE = new CommandService();
     public static final ChatService CHAT_SERVICE = new ChatService();
-    public static final FriendService FRIEND_SERVICE = new FriendService(CONFIG_SERVICE);
+    public static final SocialsService SOCIALS_SERVICE = new SocialsService(CONFIG_SERVICE);
     public static final RotationService ROTATION_SERVICE = new RotationService();
     public static final InventoryService INVENTORY_SERVICE = new InventoryService();
     public static final ServerService SERVER_SERVICE = new ServerService();
@@ -69,7 +70,7 @@ public class NamiApi implements ClientModInitializer {
 
         CAT_FORMAT.add(new CatStyles());
 
-        FRIEND_SERVICE.load();
+        SOCIALS_SERVICE.load();
 
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
             FONT_SERVICE.init(); // font is making glyph textures, it should be after game loaded not on initialize

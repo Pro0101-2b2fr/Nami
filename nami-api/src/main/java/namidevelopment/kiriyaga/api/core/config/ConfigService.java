@@ -2,6 +2,7 @@ package namidevelopment.kiriyaga.api.core.config;
 
 import com.google.gson.*;
 import namidevelopment.kiriyaga.api.core.config.model.ConfigMeta;
+import namidevelopment.kiriyaga.api.core.socials.SocialsStatus;
 import namidevelopment.kiriyaga.api.model.feature.Feature;
 
 import static namidevelopment.kiriyaga.api.NamiApi.*;
@@ -11,6 +12,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class ConfigService {
@@ -19,7 +21,7 @@ public class ConfigService {
     private final FeatureConfigWriter FeatureWriter = new FeatureConfigWriter(dirProvider);
     private final FeatureConfigReader FeatureLoader = new FeatureConfigReader(dirProvider);
     private final ConfigSerializer configSerializer = new ConfigSerializer(dirProvider);
-    private final FriendStorage friendStorage = new FriendStorage(dirProvider);
+    private final SocialsStorage socialsStorage = new SocialsStorage(dirProvider);
     private final MacroStorage macroStorage = new MacroStorage(dirProvider);
     private final PluginStorage pluginStorage = new PluginStorage(dirProvider);
 
@@ -39,8 +41,8 @@ public class ConfigService {
         return configSerializer;
     }
 
-    public FriendStorage getFriendStorage() {
-        return friendStorage;
+    public SocialsStorage getSocialsStorage() {
+        return socialsStorage;
     }
 
     public MacroStorage getMacroStorage() {
@@ -79,16 +81,12 @@ public class ConfigService {
         return configSerializer.readMeta(name);
     }
 
-    public void saveFriends(Set<String> friends) {
-        friendStorage.save(friends);
+    public void saveSocials(Map<String, SocialsStatus> socials) {
+        socialsStorage.save(socials);
     }
 
-    public Set<String> loadFriends() {
-        return friendStorage.load();
-    }
-
-    public boolean isFriend(String name) {
-        return friendStorage.isFriend(name);
+    public Map<String, SocialsStatus> loadSocials() {
+        return socialsStorage.load();
     }
 
     public void savePluginsState() {

@@ -6,6 +6,7 @@ public interface ColorFeatureConfig {
 
     Color getGlobalColor();
     Color getFriendColor();
+    Color getEnemyColor();
 
     boolean isRainbowEnabled();
     double getRainbowSpeed();

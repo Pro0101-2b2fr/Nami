@@ -429,7 +429,7 @@ public class AutoCrystalFeature extends Feature {
         for (Player e : entities) {
             if (e.isDeadOrDying())
                 continue;
-            if (FRIEND_SERVICE.isFriend(e.getName().getString()))
+            if (SOCIALS_SERVICE.isFriend(e.getName().getString()))
                 continue;
             if (((ILivingEntity) e).isServerSideDead())
                 continue;
@@ -753,7 +753,7 @@ public class AutoCrystalFeature extends Feature {
                     return -1f;
             }
 
-            if (FRIEND_SERVICE.isFriend(e.getName().getString())) continue;
+            if (SOCIALS_SERVICE.isFriend(e.getName().getString())) continue;
 
             boolean armorBroken = isAnyArmorBroken(player);
             double dynMin = getMinDamage(player.getHealth(), player.getAbsorptionAmount(), armorBroken);

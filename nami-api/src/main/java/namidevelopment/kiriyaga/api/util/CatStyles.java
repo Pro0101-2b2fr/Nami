@@ -17,6 +17,11 @@ public class CatStyles {
         return new Color(gc.getRed(), gc.getGreen(), gc.getBlue(), 255);
     }
 
+    public Color enemy() {
+        Color gc = FeatureContractService.get(ColorFeatureConfig.class).getEnemyColor();
+        return new Color(gc.getRed(), gc.getGreen(), gc.getBlue(), 255);
+    }
+
     public Color secondary() {
         Color gs = FeatureContractService.get(ColorFeatureConfig.class).getStyledSecondColor();
         return new Color(gs.getRed(), gs.getGreen(), gs.getBlue(), 255);

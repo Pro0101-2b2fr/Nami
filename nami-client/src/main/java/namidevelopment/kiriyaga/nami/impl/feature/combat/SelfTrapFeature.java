@@ -72,8 +72,7 @@ public class SelfTrapFeature extends Feature {
         if (head.get()) {
             targets.addAll(getSurround(MC.player, baseHeight + 1, extension.get()));
             BlockPos b = MC.player.getOnPos().above().above(baseHeight*2);
-            if (MC.level.getBlockState(b).canBeReplaced() && !isPlaceable(b))
-                targets.add(b);
+            targets.add(b);
         }
 
         return targets;

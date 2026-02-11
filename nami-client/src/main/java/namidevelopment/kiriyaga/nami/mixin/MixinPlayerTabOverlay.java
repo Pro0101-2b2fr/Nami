@@ -1,16 +1,16 @@
 package namidevelopment.kiriyaga.nami.mixin;
 
+import namidevelopment.kiriyaga.api.core.socials.SocialsStatus;
 import namidevelopment.kiriyaga.nami.impl.feature.miscellaneous.BetterTabFeature;
-import net.minecraft.client.Minecraft;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.PlayerTabOverlay;
 import net.minecraft.client.multiplayer.PlayerInfo;
-import net.minecraft.world.scores.Scoreboard;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.PlayerTeam;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.Component;
-import net.minecraft.ChatFormatting;
+import net.minecraft.world.scores.Scoreboard;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -28,41 +28,69 @@ import static namidevelopment.kiriyaga.api.NamiApi.*;
 @Mixin(PlayerTabOverlay.class)
 public abstract class MixinPlayerTabOverlay {
 
-    @Shadow @Final private Minecraft minecraft;
-
     @Shadow @Final private static Comparator<PlayerInfo> PLAYER_COMPARATOR;
-
     @Shadow protected abstract Component decorateName(PlayerInfo entry, MutableComponent name);
 
-    private final Set<String> cachedFriends = new HashSet<>();
-    private long lastFriendCacheUpdate = 0;
+    private final Map<String, SocialsStatus> cachedSocials = new HashMap<>();
+    private long lastSocialCacheUpdate = 0;
+
     @SuppressWarnings("FieldCanBeLocal")
-    private final long friendCacheInterval = 1000;
+    private final long socialsCacheInterval = 1000;
+
+    private void updateSocialsCache() {
+        long now = System.currentTimeMillis();
+        if (now - lastSocialCacheUpdate < socialsCacheInterval) return;
+
+        cachedSocials.clear();
+
+        SOCIALS_SERVICE.getSocials().forEach((name, status) -> {
+            if (name != null && status != null)
+                cachedSocials.put(name.toLowerCase(), status);
+        });
+
+        lastSocialCacheUpdate = now;
+    }
+
+    private boolean isSocial(PlayerInfo entry) {
+        String name = entry.getProfile().name().toLowerCase();
+        return cachedSocials.containsKey(name);
+    }
+
+    private SocialsStatus getStatus(PlayerInfo entry) {
+        String name = entry.getProfile().name().toLowerCase();
+        return cachedSocials.getOrDefault(name, null);
+    }
+
+    private String getColorByStatus(SocialsStatus status) {
+        if (status == null) return "{global}";
+
+        return switch (status) {
+            case FRIEND -> "{friend}";
+            case ENEMY -> "{enemy}";
+            default -> "{global}";
+        };
+    }
 
     @Inject(method = "getPlayerInfos", at = @At("HEAD"), cancellable = true)
     private void collectPlayerEntries(CallbackInfoReturnable<List<PlayerInfo>> info) {
-        BetterTabFeature betterTab = FEATURE_SERVICE.getStorage() != null ? FEATURE_SERVICE.getStorage().getByClass(BetterTabFeature.class) : null;
+        BetterTabFeature betterTab = FEATURE_SERVICE.getStorage() != null
+                ? FEATURE_SERVICE.getStorage().getByClass(BetterTabFeature.class)
+                : null;
+
         if (betterTab == null || !betterTab.isEnabled()) return;
-        if (minecraft == null || minecraft.player == null || minecraft.player.connection == null) return;
+        if (MC == null || MC.player == null || MC.player.connection == null) return;
 
-        Collection<PlayerInfo> allEntries = minecraft.player.connection.getListedOnlinePlayers();
-
+        Collection<PlayerInfo> allEntries = MC.player.connection.getListedOnlinePlayers();
         List<PlayerInfo> result;
 
-        if (betterTab.friendsOnly.get()) {
-            long now = System.currentTimeMillis();
-            if (now - lastFriendCacheUpdate > friendCacheInterval) {
-                cachedFriends.clear();
-                FRIEND_SERVICE.getFriends().forEach(friend -> cachedFriends.add(friend.toLowerCase()));
-                lastFriendCacheUpdate = now;
-            }
+        if (betterTab.socialsOnly.get()) {
+            updateSocialsCache();
 
             int limit = betterTab.limit.get();
             result = new ArrayList<>(limit);
 
             for (PlayerInfo entry : allEntries) {
-                String name = entry.getProfile().name().toLowerCase();
-                if (cachedFriends.contains(name)) {
+                if (isSocial(entry)) {
                     result.add(entry);
                     if (result.size() >= limit) break;
                 }
@@ -81,40 +109,28 @@ public abstract class MixinPlayerTabOverlay {
     }
 
     @Inject(method = "getNameForDisplay", at = @At("HEAD"), cancellable = true)
-    private void getPlayerName(PlayerInfo entry, CallbackInfoReturnable<Component> info) {
+    private void getNameForDisplay(PlayerInfo entry, CallbackInfoReturnable<Component> info) {
         BetterTabFeature betterTab = FEATURE_SERVICE.getStorage() != null ? FEATURE_SERVICE.getStorage().getByClass(BetterTabFeature.class) : null;
+
         if (betterTab == null || !betterTab.isEnabled()) return;
-
-        boolean highlightFriends = betterTab.highlighFriends.get();
+        if (!betterTab.highlight.get()) return;
         String playerName = entry.getProfile().name();
-        boolean isFriend = FRIEND_SERVICE.isFriend(playerName);
+        SocialsStatus status = SOCIALS_SERVICE.getStatus(playerName);
+        if (status == null) return;
 
-        if (highlightFriends && isFriend) {
-            MutableComponent formattedName = Component.empty();
+        String color = switch (status) {
+            case FRIEND -> "{friend}";
+            case ENEMY -> "{enemy}";
+            default -> "{global}";
+        };
 
-            if (entry.getTabListDisplayName() != null) {
-                for (Component sibling : entry.getTabListDisplayName().getSiblings()) {
-                    String str = sibling.getString();
-                    if (str.equals(playerName)) {
-                        formattedName.append(CAT_FORMAT.format("{friend}" + playerName));
-                    } else if (str.equals("] " + playerName)) {
-                        formattedName.append(Component.literal("] ").withStyle(ChatFormatting.WHITE))
-                                .append(CAT_FORMAT.format("{friend}" + playerName));
-                    } else {
-                        formattedName.append(sibling);
-                    }
-                }
-            } else {
-                formattedName = PlayerTeam.formatNameForTeam(entry.getTeam(), CAT_FORMAT.format("{friend}"+playerName));
-            }
-
-            info.setReturnValue(decorateName(entry, formattedName));
-        }
+        info.setReturnValue(decorateName(entry, CAT_FORMAT.format(color + playerName)));
     }
 
     @Inject(method = "render", at = @At("HEAD"))
     private void render(GuiGraphics drawContext, int width, Scoreboard scoreboard, @Nullable Objective objective, CallbackInfo ci) {
         BetterTabFeature betterTab = FEATURE_SERVICE.getStorage().getByClass(BetterTabFeature.class);
+
         if (betterTab != null && betterTab.isEnabled()) {
             float scale = betterTab.scale.get().floatValue();
 
@@ -132,6 +148,7 @@ public abstract class MixinPlayerTabOverlay {
     @Inject(method = "render", at = @At("RETURN"))
     private void render2(GuiGraphics drawContext, int width, Scoreboard scoreboard, @Nullable Objective objective, CallbackInfo ci) {
         BetterTabFeature betterTab = FEATURE_SERVICE.getStorage().getByClass(BetterTabFeature.class);
+
         if (betterTab != null && betterTab.isEnabled()) {
             drawContext.pose().popMatrix();
         }

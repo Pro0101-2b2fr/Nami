@@ -7,6 +7,7 @@ import namidevelopment.kiriyaga.api.event.impl.Render3DEvent;
 import namidevelopment.kiriyaga.api.model.feature.Feature;
 import namidevelopment.kiriyaga.api.model.feature.FeatureCategory;
 import namidevelopment.kiriyaga.api.model.setting.BoolSetting;
+import namidevelopment.kiriyaga.api.util.BlockUtils;
 import namidevelopment.kiriyaga.nami.impl.feature.combat.component.TrapComponent;
 
 import net.minecraft.core.BlockPos;
@@ -82,9 +83,8 @@ public class FeetTrapFeature extends Feature {
                             base.south().west()};
 
                     for (BlockPos b : corners) {
-                        if (MC.level.getBlockState(b).canBeReplaced() && !isPlaceable(b)) {
+                        if (MC.level.getBlockState(b).canBeReplaced() && !BlockUtils.isPlaceable(b))
                             targets.add(b);
-                        }
                     }
                 }
             }

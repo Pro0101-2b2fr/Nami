@@ -1,27 +1,29 @@
 package namidevelopment.kiriyaga.nami.impl.gui.newgui.screen;
 
-import namidevelopment.kiriyaga.nami.impl.gui.newgui.base.NamiScreen;
-import namidevelopment.kiriyaga.nami.impl.gui.newgui.entry.FriendEntry;
-import namidevelopment.kiriyaga.nami.impl.gui.newgui.widget.ActionItem;
+import namidevelopment.kiriyaga.api.core.socials.SocialsStatus;
 import namidevelopment.kiriyaga.nami.impl.feature.client.ClickGuiFeature;
+import namidevelopment.kiriyaga.nami.impl.gui.newgui.base.NamiScreen;
 import namidevelopment.kiriyaga.nami.impl.gui.newgui.component.ConsolePanelComponent;
-import net.minecraft.client.input.MouseButtonEvent;
+import namidevelopment.kiriyaga.nami.impl.gui.newgui.entry.SocialEntry;
+import namidevelopment.kiriyaga.nami.impl.gui.newgui.widget.ActionItem;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-
-import static namidevelopment.kiriyaga.nami.Nami.*;
 import static namidevelopment.kiriyaga.api.NamiApi.*;
-public class FriendScreen extends NamiScreen {
-    private ConsolePanelComponent<FriendEntry> console;
+import static namidevelopment.kiriyaga.nami.Nami.*;
+
+public class SocialsScreen extends NamiScreen {
+
+    private ConsolePanelComponent<SocialEntry> console;
     private long lastOnlineUpdate;
 
-    public FriendScreen() {
-        super(Component.literal("NamiFriends"));
+    public SocialsScreen() {
+        super(Component.literal("NamiSocials"));
     }
 
     private ClickGuiFeature getClickGuiFeature() {
@@ -34,26 +36,37 @@ public class FriendScreen extends NamiScreen {
 
         if (console == null) {
             console = new ConsolePanelComponent<>(
-                    "Friends", 20, 20, 300, 200,
-                    entry -> { FRIEND_SERVICE.addFriend(entry.getName()); reloadEntry(); },
-                    entry -> { FRIEND_SERVICE.removeFriend(entry.getName()); reloadEntry(); },
+                    "Socials", 20, 20, 300, 200,
+                    entry -> {
+                        SocialEntry e = (SocialEntry) entry;
+                        SOCIALS_SERVICE.setStatus(e.getName(), SocialsStatus.FRIEND);
+                        reloadEntry();
+                    },
+                    entry -> {
+                        SocialEntry e = (SocialEntry) entry;
+                        SOCIALS_SERVICE.remove(e.getName());
+                        reloadEntry();
+                    },
                     entry -> {},
-                    FriendEntry::new
+                    name -> new SocialEntry(name, SocialsStatus.FRIEND)
             );
         }
+
         reloadEntry();
     }
 
     private void reloadEntry() {
-        List<FriendEntry> friends = FRIEND_SERVICE.getFriends().stream().map(FriendEntry::new).collect(Collectors.toList());
-        console.setEntries(friends);
+        Map<String, SocialsStatus> socials = SOCIALS_SERVICE.getSocials();
+        List<SocialEntry> entries = socials.entrySet().stream().map(e -> new SocialEntry(e.getKey(), e.getValue())).collect(Collectors.toList());
+
+        console.setEntries(entries);
     }
 
     private void updateOnlineStatuses() {
         if (System.currentTimeMillis() - lastOnlineUpdate < 15000) return;
         lastOnlineUpdate = System.currentTimeMillis();
 
-        console.getEntries().forEach(FriendEntry::refreshEntry);
+        console.getEntries().forEach(SocialEntry::refreshEntry);
     }
 
     @Override
@@ -61,14 +74,7 @@ public class FriendScreen extends NamiScreen {
         ClickGuiFeature clickGuiFeature = getClickGuiFeature();
 
         if (clickGuiFeature != null && clickGuiFeature.background.get()) {
-            //Identifier.ofVanilla("textures/gui/inworld_menu_background.png")
             renderMenuBackground(context);
-/*            int alpha = (clickGuiFeature.backgroundAlpha.get() & 0xFF) << 24;
-            int color = alpha |
-                    (Feature_SERVICE.getStorage()
-                            .getByClass(ColorFeature.class)
-                            .getStyledGlobalColor().getRGB() & 0xFFFFFF);
-            context.fill(0, 0, width, height, CLICK_GUI.applyFade(color));*/
         }
 
         NAVIGATE_PANEL.render(context, FONT_SERVICE.rendererProvider.getRenderer(), mouseX, mouseY);
@@ -95,11 +101,25 @@ public class FriendScreen extends NamiScreen {
         double sy = click.y() / CLICK_GUI_SCREEN.scale;
 
         if (click.button() == 1) {
-            FriendEntry entry = getFriendAt(sx, sy);
+            SocialEntry entry = getSocialAt(sx, sy);
+
             if (entry != null) {
                 console.getActionWidget().clearItems();
+
+                console.getActionWidget().addItem(new ActionItem("friend", () -> {
+                    SOCIALS_SERVICE.setStatus(entry.getName(), SocialsStatus.FRIEND);
+                    entry.setStatus(SocialsStatus.FRIEND);
+                    reloadEntry();
+                }));
+
+                console.getActionWidget().addItem(new ActionItem("enemy", () -> {
+                    SOCIALS_SERVICE.setStatus(entry.getName(), SocialsStatus.ENEMY);
+                    entry.setStatus(SocialsStatus.ENEMY);
+                    reloadEntry();
+                }));
+
                 console.getActionWidget().addItem(new ActionItem("delete", () -> {
-                    FRIEND_SERVICE.removeFriend(entry.getName());
+                    SOCIALS_SERVICE.remove(entry.getName());
                     reloadEntry();
                 }));
 
@@ -116,25 +136,32 @@ public class FriendScreen extends NamiScreen {
         return console.mouseClicked(sx, sy, click.button()) || super.mouseClicked(click, bl);
     }
 
-    private FriendEntry getFriendAt(double mouseX, double mouseY) { // oh god i need to rewrite it
+    private SocialEntry getSocialAt(double mouseX, double mouseY) {
         int contentY = console.getY() + console.getHeaderHeight() + 4;
         int lineHeight = FONT_SERVICE.getHeight() + 4;
         int contentHeight = console.getHeight() - console.getHeaderHeight() - console.getInputHeight() - 8;
         int maxVisible = contentHeight / lineHeight;
+
         double scroll = console.getScrollOffset();
         int start = (int) Math.floor(scroll);
         double partial = scroll - start;
+
         int drawY = contentY - (int) (partial * lineHeight);
-        for (int i = start; i < Math.min(console.getEntries().size(), start + maxVisible + 1);i++) {
-            FriendEntry entry = console.getEntries().get(i);
+
+        for (int i = start; i < Math.min(console.getEntries().size(), start + maxVisible + 1); i++) {
+            SocialEntry entry = console.getEntries().get(i);
+
             if (mouseY >= drawY && mouseY <= drawY + lineHeight)
                 return entry;
+
             drawY += lineHeight;
         }
+
         return null;
     }
 
-    @Override public boolean mouseScrolled(double x, double y, double h, double v) {
+    @Override
+    public boolean mouseScrolled(double x, double y, double h, double v) {
         return console.mouseScrolled(x / CLICK_GUI_SCREEN.scale, y / CLICK_GUI_SCREEN.scale, v)
                 || super.mouseScrolled(x, y, h, v);
     }
@@ -168,6 +195,6 @@ public class FriendScreen extends NamiScreen {
         return console.charTyped(character.charAt(0), modifiers) || super.charTyped(charInput);
     }
 
-
-    @Override public boolean isPauseScreen() { return false; }
+    @Override
+    public boolean isPauseScreen() {return false;}
 }

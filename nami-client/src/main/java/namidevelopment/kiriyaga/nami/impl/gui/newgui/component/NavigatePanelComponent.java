@@ -28,7 +28,7 @@ public class NavigatePanelComponent {
     public NavigatePanelComponent() {
         addScreen("ClickGui", CLICK_GUI_SCREEN);
         addScreen("HudEditor", HUD_EDITOR_SCREEN);
-        addScreen("Friends", FRIEND_SCREEN);
+        addScreen("Socials", SOCIALS_SCREEN);
         addScreen("Configs", CONFIG_SCREEN);
         addScreen("Plugins", PLUGIN_SCREEN);
         this.colorFeature = FEATURE_SERVICE.getStorage().getByClass(ColorFeature.class);

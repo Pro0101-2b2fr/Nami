@@ -7,6 +7,7 @@ import namidevelopment.kiriyaga.nami.impl.feature.client.RotationsFeature;
 import namidevelopment.kiriyaga.nami.impl.feature.movement.HighJumpFeature;
 import namidevelopment.kiriyaga.nami.impl.feature.exploits.NoJumpDelayFeature;
 import namidevelopment.kiriyaga.nami.impl.feature.movement.NoLevitationFeature;
+import namidevelopment.kiriyaga.nami.mixininterface.ILivingEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.Entity;
@@ -23,6 +24,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
@@ -33,7 +35,7 @@ import static namidevelopment.kiriyaga.nami.Nami.*;
 import static namidevelopment.kiriyaga.api.NamiApi.*;
 
 @Mixin(LivingEntity.class)
-public abstract class MixinLivingEntity extends Entity {
+public abstract class MixinLivingEntity extends Entity implements ILivingEntity {
 
     @Shadow
     private int noJumpDelay;
@@ -42,6 +44,18 @@ public abstract class MixinLivingEntity extends Entity {
         super(type, world);
     }
 
+    @Unique
+    private boolean serverSideDead;
+
+    @Override
+    public void setServerSideDead(boolean value) {
+        this.serverSideDead = value;
+    }
+
+    @Override
+    public boolean isServerSideDead() {
+        return serverSideDead;
+    }
     @Inject(method = "aiStep", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiling/ProfilerFiller;pop()V", ordinal = 2, shift = At.Shift.BEFORE))
     private void doItemUse(CallbackInfo info) {
         NoJumpDelayFeature Feature = FEATURE_SERVICE.getStorage() != null ? FEATURE_SERVICE.getStorage().getByClass(NoJumpDelayFeature.class) : null;

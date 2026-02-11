@@ -7,8 +7,9 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.Locale;
+import java.util.Set;
 
-public record AutoCrystalSnapshot(long tickId, int selfId, Vec3 eyePos, BlockPos playerBlockPos, double placeRange, double breakRange, double minDamage, boolean assumeBestArmor, Difficulty difficulty, boolean scalesWithDifficulty, Level level, TargetData[] targets, BlockPos[] candidatePos) {
+public record AutoCrystalSnapshot(long tickId, int selfId, Vec3 eyePos, BlockPos playerBlockPos, double placeRange, double breakRange, double minDamage, boolean assumeBestArmor, Difficulty difficulty, boolean scalesWithDifficulty, Level level, TargetData[] targets, BlockPos[] candidatePos, Set<BlockPos> ignoredBlocks) {
     public record TargetData(
             int id,
             Vec3 pos,

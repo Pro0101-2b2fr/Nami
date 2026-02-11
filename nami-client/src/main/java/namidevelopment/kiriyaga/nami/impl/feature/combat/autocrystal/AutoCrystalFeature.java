@@ -1,14 +1,12 @@
 package namidevelopment.kiriyaga.nami.impl.feature.combat.autocrystal;
 
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import namidevelopment.kiriyaga.api.annotation.SubscribeEvent;
 import namidevelopment.kiriyaga.api.event.EventPriority;
-import namidevelopment.kiriyaga.api.event.impl.AddEntityEvent;
-import namidevelopment.kiriyaga.api.event.impl.PreTickEvent;
-import namidevelopment.kiriyaga.api.event.impl.RemoveEntityEvent;
-import namidevelopment.kiriyaga.api.event.impl.Render3DEvent;
+import namidevelopment.kiriyaga.api.event.impl.*;
 import namidevelopment.kiriyaga.api.model.feature.Feature;
 import namidevelopment.kiriyaga.api.model.feature.FeatureCategory;
 import namidevelopment.kiriyaga.api.annotation.RegisterFeature;
@@ -24,11 +22,9 @@ import namidevelopment.kiriyaga.api.util.entity.DamageUtils;
 import namidevelopment.kiriyaga.api.util.entity.EntityUtils;
 import namidevelopment.kiriyaga.api.util.render.RenderUtil;
 import namidevelopment.kiriyaga.nami.impl.feature.world.SpeedMineFeature;
+import namidevelopment.kiriyaga.nami.mixininterface.ILivingEntity;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
-import net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket;
-import net.minecraft.network.protocol.game.ServerboundInteractPacket;
-import net.minecraft.network.protocol.game.ServerboundSwingPacket;
+import net.minecraft.network.protocol.game.*;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.CombatRules;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -54,6 +50,7 @@ import java.awt.*;
 import java.util.*;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -113,13 +110,16 @@ public class AutoCrystalFeature extends Feature {
     private PlaceTarget lastPlaceTarget = null;
     public float lastTotalDamage;
     float lastCalcTimeMs = 0;
+
     private final Int2IntOpenHashMap crystalHits = new Int2IntOpenHashMap();
     private final Long2IntOpenHashMap crystalPlaces = new Long2IntOpenHashMap();
+    private final Set<Integer> deadIds = ConcurrentHashMap.newKeySet();
+
+
     private final ExecutorService calcExecutor = Executors.newSingleThreadExecutor();
     private volatile Future<?> runningTask;
     private final AtomicReference<PlaceTarget> asyncBest = new AtomicReference<>();
     private volatile PlaceTarget bestPlace;
-
 
     public AutoCrystalFeature() {
         super("AutoCrystal", "Automatically places and break crystals to kill people, if you are good enough!.", FeatureCategory.of("Combat"), "autocrystal", "ac", "crystalaura");
@@ -238,6 +238,23 @@ public class AutoCrystalFeature extends Feature {
         this.clearDisplayInfo();
         this.addDisplayInfo(String.format(Locale.US, "%.2f", lastTotalDamage));
         this.addDisplayInfo(String.format(Locale.US, "%.4f", lastCalcTimeMs));
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOW)
+    public void onPacketReceive(PacketReceiveEvent event) {
+        if (!(event.getPacket() instanceof ClientboundEntityEventPacket packet)) return;
+        if (packet.getEventId() != 3) return;
+
+        // Author: cattyngmd
+        MC.execute(() -> {
+            Entity e = packet.getEntity(MC.level);
+            if (e instanceof LivingEntity living) {
+                ((ILivingEntity) living).setServerSideDead(true);
+            }
+            if (e instanceof Player player) {
+                deadIds.add(e.getId());
+            }
+        });
     }
 
     @SubscribeEvent
@@ -414,6 +431,8 @@ public class AutoCrystalFeature extends Feature {
                 continue;
             if (FRIEND_SERVICE.isFriend(e.getName().getString()))
                 continue;
+            if (((ILivingEntity) e).isServerSideDead())
+                continue;
 
             dbg.targetsValid++;
 
@@ -461,6 +480,7 @@ public class AutoCrystalFeature extends Feature {
         int rr = r * r;
 
         ArrayList<BlockPos> candidates = new ArrayList<>();
+        Set<BlockPos> ignored = ignoredBlocks(true);
 
         for (int x = -r; x <= r; x++) {
             for (int y = -r; y <= r; y++) {
@@ -521,7 +541,7 @@ public class AutoCrystalFeature extends Feature {
             }
         }
 
-        return new AutoCrystalSnapshot(tickId, MC.player.getId(), eyePos, playerPos, pr, br, minDmg, assumeBestArmor.get(), MC.level.getDifficulty(), true, MC.level, targets.toArray(new AutoCrystalSnapshot.TargetData[0]), candidates.toArray(new BlockPos[0]));
+        return new AutoCrystalSnapshot(tickId, MC.player.getId(), eyePos, playerPos, pr, br, minDmg, assumeBestArmor.get(), MC.level.getDifficulty(), true, MC.level, targets.toArray(new AutoCrystalSnapshot.TargetData[0]), candidates.toArray(new BlockPos[0]), ignored);
     }
 
     private PlaceTarget findNextPlaceTargetForSnapshot(AutoCrystalSnapshot snap, AutoCrystalSnapshot.AsyncDebugInfo dbg) {
@@ -552,6 +572,10 @@ public class AutoCrystalFeature extends Feature {
         for (var t : snap.targets()) {
             double dist = t.pos().distanceTo(explosionPos);
             if (dist > 12.0) continue;
+
+
+            if (deadIds.contains(t.id()))
+                continue;
 
             double exposure = calculateExposureForSnapshot(explosionPos, t.box(), snap);
             if (exposure <= 0.0) continue;
@@ -618,6 +642,7 @@ public class AutoCrystalFeature extends Feature {
 
         return CombatRules.getDamageAfterMagicAbsorb(damage, totalProtection);
     }
+
     private float calculateExposureForSnapshot(Vec3 source, AABB box, AutoCrystalSnapshot snap) {
         double dx = box.getXsize();
         double dy = box.getYsize();
@@ -650,9 +675,11 @@ public class AutoCrystalFeature extends Feature {
                 start, end,
                 new DamageUtils.ExposureContext(start, end),
                 (ctx, pos) -> {
-                    BlockState state = snap.level().getBlockState(pos);
 
-                    if (state.getBlock().getExplosionResistance() < 600 && placeIgnoreTerrain.get()) return null;
+                    if (snap.ignoredBlocks() != null && snap.ignoredBlocks().contains(pos))
+                        return null;
+
+                    BlockState state = snap.level().getBlockState(pos);
 
                     return state.getCollisionShape(snap.level(), pos)
                             .clip(ctx.start(), ctx.end(), pos);
@@ -745,6 +772,9 @@ public class AutoCrystalFeature extends Feature {
         lastPlaceTarget = null;
         lastTotalDamage = 0;
         lastCalcTimeMs = 0;
+
+        if (MC.player.tickCount % 100 == 0)
+            deadIds.clear();
 
         LongIterator it = crystalPlaces.keySet().iterator();
         while (it.hasNext()) {

@@ -23,7 +23,7 @@ import java.util.Date;
 import static namidevelopment.kiriyaga.api.NamiApi.LOGGER;
 import static namidevelopment.kiriyaga.api.NamiApi.CONFIG_SERVICE;
 
-//@RegisterFeature
+@RegisterFeature
 public class RandomFeature extends Feature {
 
     public final BoolSetting logReceive = addSetting(new BoolSetting("PacketReceiveLog", true));

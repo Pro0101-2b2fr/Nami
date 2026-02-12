@@ -11,10 +11,6 @@ import static namidevelopment.kiriyaga.api.NamiApi.*;
 public class UptimeFeature extends HudElementFeature {
 
     public final BoolSetting displayLabel = addSetting(new BoolSetting("Label", true));
-    public final BoolSetting days = addSetting(new BoolSetting("Days", true));
-    public final BoolSetting hours = addSetting(new BoolSetting("Hours", true));
-    public final BoolSetting minutes = addSetting(new BoolSetting("Minutes", true));
-    public final BoolSetting seconds = addSetting(new BoolSetting("Seconds", true));
 
     public UptimeFeature() {
         super("Uptime", "Displays total time of minecraft run time.", 0, 0, 120, 10);
@@ -23,63 +19,19 @@ public class UptimeFeature extends HudElementFeature {
     @Override
     public Component getDisplayText() {
         long uptimeMillis = System.currentTimeMillis() - START_TIME;
-        long totalSeconds = uptimeMillis / 1000;
+        long totalMinutes = uptimeMillis / 60000;
+        long hours = totalMinutes / 60;
+        long minutes = totalMinutes % 60;
+        String formatted;
 
-        long displayDays = 0, displayHours = 0, displayMinutes = 0, displaySeconds = 0;
-
-        if (this.days.get()) {
-            displayDays = totalSeconds / 86400;
-            totalSeconds %= 86400;
-        }
-        if (this.hours.get()) {
-            displayHours = totalSeconds / 3600;
-            totalSeconds %= 3600;
-        } else if (!this.days.get()) {
-            displayHours = totalSeconds / 3600;
-            totalSeconds %= 3600;
+        if (displayLabel.get()) {
+            formatted = String.format("{global}Uptime({white}%02d{global}:{white}%02d{global})", hours, minutes);
         } else {
-            totalSeconds += (totalSeconds / 3600) * 3600;
+            formatted = String.format("{global}({white}%02d{global}:{white}%02d{global})", hours, minutes);
         }
 
-        if (this.minutes.get()) {
-            displayMinutes = totalSeconds / 60;
-            totalSeconds %= 60;
-        } else {
-            totalSeconds += (totalSeconds / 60) * 60;
-        }
-        if (this.seconds.get()) {
-            displaySeconds = totalSeconds;
-        }
-
-        StringBuilder sb = new StringBuilder();
-
-        if (displayLabel.get()) sb.append("{global}Uptime: {white}");
-
-        boolean first = true;
-
-        if (this.days.get() && displayDays > 0) {
-            sb.append(displayDays).append(" days{global},{white}");
-            first = false;
-        }
-        if (this.hours.get() && displayHours > 0) {
-            if (!first) sb.append(" ");
-            sb.append(displayHours).append(" hours{global},{white}");
-            first = false;
-        }
-        if (this.minutes.get() && displayMinutes > 0) {
-            if (!first) sb.append(" ");
-            sb.append(displayMinutes).append(" minutes{global},{white}");
-            first = false;
-        }
-        if (this.seconds.get() && displaySeconds > 0) {
-            if (!first) sb.append(" ");
-            sb.append(displaySeconds).append(" seconds");
-        }
-
-        String formatted = sb.toString();
         width = FONT_SERVICE.getWidth(formatted.replace("{global}", "").replace("{white}", ""));
         height = FONT_SERVICE.getHeight();
-
         return CAT_FORMAT.format(formatted);
     }
 }

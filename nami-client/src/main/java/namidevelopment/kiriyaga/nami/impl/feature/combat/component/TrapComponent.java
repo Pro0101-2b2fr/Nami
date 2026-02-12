@@ -8,12 +8,10 @@ import namidevelopment.kiriyaga.api.model.feature.Feature;
 import namidevelopment.kiriyaga.api.model.setting.BoolSetting;
 import namidevelopment.kiriyaga.api.model.setting.DoubleSetting;
 import namidevelopment.kiriyaga.api.model.setting.IntSetting;
-import namidevelopment.kiriyaga.api.util.BlockUtils;
 import namidevelopment.kiriyaga.api.util.InteractionUtils;
 import namidevelopment.kiriyaga.api.util.render.RenderUtil;
 import namidevelopment.kiriyaga.nami.impl.feature.client.ColorFeature;
-import com.mojang.blaze3d.vertex.PoseStack;
-import namidevelopment.kiriyaga.nami.impl.feature.combat.autocrystal.AutoCrystalFeature;
+import namidevelopment.kiriyaga.nami.impl.feature.client.TrapFeature;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
@@ -36,8 +34,6 @@ import static namidevelopment.kiriyaga.api.util.RotationUtils.*;
 public class TrapComponent {
 
     public final DoubleSetting range;
-    public final IntSetting delay;
-    public final IntSetting shiftTicks;
     public final BoolSetting airPlace;
     public final BoolSetting grim;
     public final BoolSetting rotate;
@@ -56,14 +52,15 @@ public class TrapComponent {
     public final BoolSetting attackSwing;
     public final IntSetting attackAge;
 
-    private int cooldown = 0;
     private final List<BlockPos> targetPositions = new ArrayList<>();
-    private final List<BlockPos> placedPositions = new ArrayList<>();
+    private final List<BlockPos> placedPositions = new ArrayList<>(); // todo: finish this
+    private int cooldownTick = 0;
+    private boolean window = false;
+    private long windowOpenedTime = 0;
+    private int windowPlaced = 0;
 
     public TrapComponent(Feature feature) {
         range = feature.addSetting(new DoubleSetting("Range", 4.50, 1.0, 6.0));
-        delay = feature.addSetting(new IntSetting("Delay", 0, 0, 5));
-        shiftTicks = feature.addSetting(new IntSetting("ShiftTicks", 1, 1, 8));
         airPlace = feature.addSetting(new BoolSetting("AirPlace", false));
         grim = feature.addSetting(new BoolSetting("Grim", false));
         rotate = feature.addSetting(new BoolSetting("Rotate", true));
@@ -75,7 +72,6 @@ public class TrapComponent {
         foundation = feature.addSetting(new BoolSetting("Foundation", false));
         swing = feature.addSetting(new BoolSetting("Swing", true));
         render = feature.addSetting(new BoolSetting("Render", true));
-
         attack = feature.addSetting(new BoolSetting("Attack", false));
         attackRotate = feature.addSetting(new BoolSetting("AttackRotate","Rotate", true));
         attackRange = feature.addSetting(new DoubleSetting("AttackRange","Range", 3.00, 1.0, 6.0));
@@ -95,7 +91,6 @@ public class TrapComponent {
     }
 
     public void onDisable() {
-        cooldown = 0;
         targetPositions.clear();
         placedPositions.clear();
     }
@@ -107,7 +102,10 @@ public class TrapComponent {
     public void onTick(PreTickEvent event, Feature owner, List<BlockPos> newTargets) {
         if (MC.player == null || MC.level == null) return;
 
-        if (simulate.get() && !placedPositions.isEmpty()) {
+        TrapFeature trapFeature = FEATURE_SERVICE.getStorage().getByClass(TrapFeature.class);
+        tickTimer(trapFeature);
+
+/*        if (simulate.get() && !placedPositions.isEmpty()) {
             Item handItem = MC.player.getMainHandItem().getItem();
 
             for (BlockPos pos : placedPositions) {
@@ -115,15 +113,18 @@ public class TrapComponent {
             }
 
             placedPositions.clear();
-        }
+        }*/
 
         targetPositions.clear();
         if (newTargets != null) targetPositions.addAll(newTargets);
 
-        if (cooldown > 0) {
-            cooldown--;
-            return;
+        if (trapFeature.mode.get() == TrapFeature.Mode.TICKS) {
+            if (cooldownTick > 0)
+                return;
         }
+
+        if (trapFeature.mode.get() == TrapFeature.Mode.MS && window && windowPlaced >= trapFeature.shiftTicks.get())
+            return;
 
         if (attack.get() && !targetPositions.isEmpty()) {
             for (EndCrystal crystal : MC.level.getEntitiesOfClass(EndCrystal.class, new AABB(MC.player.blockPosition()).inflate(range.get() + 6.0))) {
@@ -173,23 +174,55 @@ public class TrapComponent {
 
         for (BlockPos pos : targetPositions) {
 
+            if (trapFeature.mode.get() == TrapFeature.Mode.MS) {
+                if (window && windowPlaced >= trapFeature.shiftTicks.get())
+                    break;
+            }
+
+            if (blocksPlaced >= trapFeature.shiftTicks.get())
+                break;
+
             if (foundation.get()) {
-                BlockPos foundation = pos.below();
-                if (place(foundation, getSlot(), airPlace.get(), grim.get(), owner)) {
+                BlockPos foundationPos = pos.below();
+                if (place(foundationPos, getSlot(), airPlace.get(), grim.get(), owner)) {
                     blocksPlaced++;
-                    if (blocksPlaced >= shiftTicks.get()) break;
+                    if (trapFeature.mode.get() == TrapFeature.Mode.MS) {
+                        if (!window) {
+                            window = true;
+                            windowOpenedTime = System.currentTimeMillis();
+                            windowPlaced = 0;
+                        }
+                        windowPlaced++;
+                    }
                 }
             }
+
+            if (trapFeature.mode.get() == TrapFeature.Mode.MS) {
+                if (window && windowPlaced >= trapFeature.shiftTicks.get())
+                    break;
+            }
+
+            if (blocksPlaced >= trapFeature.shiftTicks.get())
+                break;
 
             if (place(pos, getSlot(), airPlace.get(), grim.get(), owner)) {
                 placedPositions.add(pos);
                 blocksPlaced++;
-                if (blocksPlaced >= shiftTicks.get()) break;
+                if (trapFeature.mode.get() == TrapFeature.Mode.MS) {
+                    if (!window) {
+                        window = true;
+                        windowOpenedTime = System.currentTimeMillis();
+                        windowPlaced = 0;
+                    }
+                    windowPlaced++;
+                }
             }
         }
 
         if (blocksPlaced > 0) {
-            cooldown = delay.get();
+            if (trapFeature.mode.get() == TrapFeature.Mode.TICKS) {
+                cooldownTick = trapFeature.delayTick.get();
+            }
         }
     }
 
@@ -273,6 +306,22 @@ public class TrapComponent {
 
         if (attackSwing.get()) {
             MC.player.swing(InteractionHand.MAIN_HAND);
+        }
+    }
+
+    private void tickTimer(TrapFeature trapFeature) {
+        if (trapFeature == null) return;
+        if (trapFeature.mode.get() == TrapFeature.Mode.TICKS) {
+            if (cooldownTick > 0)
+                cooldownTick--;
+        } else {
+            if (window) {
+                long passed = System.currentTimeMillis() - windowOpenedTime;
+                if (passed >= (long) trapFeature.delayMilliseconds.get().floatValue()) {
+                    window = false;
+                    windowPlaced = 0;
+                }
+            }
         }
     }
 }

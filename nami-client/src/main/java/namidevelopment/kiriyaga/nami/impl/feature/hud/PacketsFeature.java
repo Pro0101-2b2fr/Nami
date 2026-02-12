@@ -4,6 +4,7 @@ import namidevelopment.kiriyaga.api.annotation.RegisterFeature;
 import namidevelopment.kiriyaga.api.annotation.SubscribeEvent;
 import namidevelopment.kiriyaga.api.event.EventPriority;
 import namidevelopment.kiriyaga.api.event.impl.PacketReceiveEvent;
+import namidevelopment.kiriyaga.api.event.impl.PacketSendEvent;
 import namidevelopment.kiriyaga.api.model.feature.HudElementFeature;
 import namidevelopment.kiriyaga.api.model.setting.BoolSetting;
 import namidevelopment.kiriyaga.api.model.setting.EnumSetting;
@@ -33,7 +34,7 @@ public class PacketsFeature extends HudElementFeature {
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public void onPacket(PacketReceiveEvent event) {
+    public void onPacketSend(PacketSendEvent event) {
         Packet<?> packet = event.getPacket();
         if (packet == null) return;
         long now = System.currentTimeMillis();

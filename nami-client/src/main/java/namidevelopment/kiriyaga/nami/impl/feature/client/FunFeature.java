@@ -31,7 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static namidevelopment.kiriyaga.api.NamiApi.MC;
 import static namidevelopment.kiriyaga.nami.Nami.*;
 
-//@RegisterFeature
+@RegisterFeature
 public class FunFeature extends Feature {
 
     public final BoolSetting interactDebug = addSetting(new BoolSetting("ShowInteract", false));

@@ -20,11 +20,7 @@ public class RotationsFeature extends Feature implements RotationsFeatureConfig 
     public final DoubleSetting rotationEaseFactor = addSetting(new DoubleSetting("Ease", 1, 0.5, 1));
     public final DoubleSetting rotationThreshold = addSetting(new DoubleSetting("Threshold", 5, 3, 15));
     public final IntSetting ticksBeforeRelease = addSetting(new IntSetting("Hold", 0, 00, 30));
-//    public final DoubleSetting jitterAmount = addSetting(new DoubleSetting("jitter amount", 0, 0, 3));
-//    public final DoubleSetting jitterSpeed = addSetting(new DoubleSetting("jitter speed", 1, 0.015, 1));
-//    public final DoubleSetting jitterMaxYaw = addSetting(new DoubleSetting("jitter horizontal", 1, 0, 3));
-//    public final DoubleSetting jitterMaxPitch = addSetting(new DoubleSetting("jitter horizontal", 2, 0, 5));
-    public final BoolSetting jitter = addSetting(new BoolSetting("Jitter", true));
+    public final EnumSetting<JitterMode> jitter = addSetting(new EnumSetting<>("Jitter",JitterMode.NORMAL));
     public final BoolSetting moveFix = addSetting(new BoolSetting("MoveFix", true));
     public final BoolSetting render = addSetting(new BoolSetting("Render", false));
     public final BoolSetting futureRotations = addSetting(new BoolSetting("FutureRotations", false));
@@ -74,7 +70,7 @@ public class RotationsFeature extends Feature implements RotationsFeatureConfig 
     }
 
     @Override
-    public boolean isJitterEnabled() {
+    public JitterMode getJitterMode() {
         return jitter.get();
     }
 

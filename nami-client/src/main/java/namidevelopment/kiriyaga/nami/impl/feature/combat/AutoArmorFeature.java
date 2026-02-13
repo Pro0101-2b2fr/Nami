@@ -10,6 +10,7 @@ import namidevelopment.kiriyaga.api.model.setting.BoolSetting;
 import namidevelopment.kiriyaga.api.model.setting.EnumSetting;
 import namidevelopment.kiriyaga.api.model.setting.IntSetting;
 import namidevelopment.kiriyaga.api.util.EnchantmentUtils;
+import namidevelopment.kiriyaga.api.util.Timer;
 import namidevelopment.kiriyaga.api.util.entity.TargetUtils;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -18,7 +19,10 @@ import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 import static namidevelopment.kiriyaga.api.NamiApi.INVENTORY_SERVICE;
 import static namidevelopment.kiriyaga.api.NamiApi.*;import static namidevelopment.kiriyaga.api.util.entity.PlayerUtils.isBroken;
@@ -30,6 +34,7 @@ public class AutoArmorFeature extends Feature {
     public enum BootsPriority { LEATHER, GOLDEN, BEST }
     public enum HelmetPriority { BEST, TURTLE, GOLDEN, PUMPKIN, NONE }
 
+    public final IntSetting delay = addSetting(new IntSetting("Delay", 150, 0, 1000));
     public final EnumSetting<ProtectionPriority> protectionPriority = addSetting(new EnumSetting<>("Protection", ProtectionPriority.PROT));
     public final IntSetting damageThreshold = addSetting(new IntSetting("Durability", 3, 1, 15));
     public final EnumSetting<HelmetPriority> helmetSetting = addSetting(new EnumSetting<>("Helmet", HelmetPriority.BEST));
@@ -43,6 +48,8 @@ public class AutoArmorFeature extends Feature {
     public static final Set<Item> ARMOR_ITEMS_LEGS = Set.of(Items.LEATHER_LEGGINGS, Items.GOLDEN_LEGGINGS, Items.CHAINMAIL_LEGGINGS, Items.IRON_LEGGINGS, Items.DIAMOND_LEGGINGS, Items.NETHERITE_LEGGINGS);
     public static final Set<Item> ARMOR_ITEMS_FEET = Set.of(Items.LEATHER_BOOTS, Items.GOLDEN_BOOTS, Items.CHAINMAIL_BOOTS, Items.IRON_BOOTS, Items.DIAMOND_BOOTS, Items.NETHERITE_BOOTS);
 
+    private final Timer timer = new Timer();
+
     public AutoArmorFeature() {
         super("AutoArmor", "Automatically equips best armor.", FeatureCategory.of("Combat"), "autoarmor");
         helmetSafety.setShowCondition(() -> helmetSetting.get() == HelmetPriority.NONE);
@@ -52,6 +59,8 @@ public class AutoArmorFeature extends Feature {
     public void onTick(PostTickEvent event) {
         if (MC.level == null || MC.player == null) return;
         Entity target = TargetUtils.getTarget();
+
+        if (!timer.hasElapsed(delay.get())) return;
 
         for (EquipmentSlot slot : EquipmentSlot.values()) {
             if (!isArmorSlot(slot)) continue;
@@ -254,6 +263,7 @@ public class AutoArmorFeature extends Feature {
         boolean hasEquipped = !equipped.isEmpty();
         INVENTORY_SERVICE.getClickHandler().pickupSlot(armorSlotIndex);
         if (hasEquipped) INVENTORY_SERVICE.getClickHandler().pickupSlot(realSlot);
+        timer.reset();
     }
 
     private void swapCursor(EquipmentSlot armorSlot) {
@@ -273,6 +283,7 @@ public class AutoArmorFeature extends Feature {
                 INVENTORY_SERVICE.getClickHandler().pickupSlot(convertSlot(empty));
             }
         }
+        timer.reset();
     }
 
     private boolean shouldEquipMendingRepair(EquipmentSlot slot, ItemStack current) {

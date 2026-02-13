@@ -1,4 +1,5 @@
 plugins {
+	id 'java'
 }
 
 allprojects {
@@ -11,4 +12,10 @@ allprojects {
 tasks.register("client") {
     group = "run"
     dependsOn(":client:runClient")
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 }

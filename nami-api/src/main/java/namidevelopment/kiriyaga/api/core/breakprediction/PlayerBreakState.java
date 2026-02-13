@@ -246,9 +246,9 @@ public class PlayerBreakState {
     }
 
     public boolean isBreaking(BlockPos pos) {
-        if (current.getBlockPos() != null && current.getBlockPos().equals(pos) && current.getProgress() > 0)
+        if (current.getBlockPos() != null && current.getBlockPos().equals(pos) && current.isActive())
             return true;
 
-        return doubleMine.getBlockPos() != null && doubleMine.getBlockPos().equals(pos) && doubleMine.getProgress() > 0;
+        return doubleMine.getBlockPos() != null && doubleMine.getBlockPos().equals(pos) && doubleMine.isActive();
     }
 }

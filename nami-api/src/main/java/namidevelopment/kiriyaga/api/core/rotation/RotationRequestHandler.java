@@ -145,7 +145,7 @@ public class RotationRequestHandler {
         float targetYaw = req.targetYaw;
         float targetPitch = req.targetPitch;
 
-        if (rotationsFeatureConfig.isJitterEnabled()) {
+        if (rotationsFeatureConfig.getJitterMode() == RotationsFeatureConfig.JitterMode.NORMAL) {
             float minJitter = (float) (rotationsFeatureConfig.getRotationThreshold() / 4f);
             float maxJitter = (float) (rotationsFeatureConfig.getRotationThreshold() / 2);
             float jitterYaw = minJitter + (float) (Math.random() * (maxJitter - minJitter));
@@ -157,6 +157,9 @@ public class RotationRequestHandler {
             targetPitch += jitterPitch;
 
             targetPitch = Mth.clamp(targetPitch, -90f, 90f);
+        } else if (rotationsFeatureConfig.getJitterMode() == RotationsFeatureConfig.JitterMode.GRIM) {
+            float f = (float)((Math.random() * 2.0 - 1.0) * 0.001f);
+            targetPitch = Mth.clamp(targetPitch + f, -90.0F, 90.0F);
         }
 
 //        ROTATION_SERVICE.getStateHandler().setRotationYaw(targetYaw);

@@ -6,6 +6,7 @@ import namidevelopment.kiriyaga.api.model.feature.FeatureCategory;
 import namidevelopment.kiriyaga.api.model.setting.DoubleSetting;
 import namidevelopment.kiriyaga.api.model.setting.EnumSetting;
 import namidevelopment.kiriyaga.api.model.setting.IntSetting;
+import namidevelopment.kiriyaga.api.util.Timer;
 
 @RegisterFeature
 public class TrapFeature extends Feature {
@@ -17,6 +18,10 @@ public class TrapFeature extends Feature {
     public final DoubleSetting delayMilliseconds = addSetting(new DoubleSetting("DelayMS", "Delay", 0.00, 0.00, 3000.00));
     public final IntSetting shiftTicks = addSetting(new IntSetting("ShiftTicks", 3, 1, 30));
 
+    public final Timer timer = new Timer();
+    public int tickCD = 0;
+    public boolean window = false;
+    public int windowPlaced = 0;
     public TrapFeature() {
         super("Trap", "Global configurations for trap features.", FeatureCategory.of("Client"));
 
@@ -31,5 +36,12 @@ public class TrapFeature extends Feature {
     public void onDisable() {
         if (!this.isEnabled())
             this.toggle();
+    }
+
+    public void reset() {
+        tickCD = 0;
+        window = false;
+        windowPlaced = 0;
+        timer.reset();
     }
 }

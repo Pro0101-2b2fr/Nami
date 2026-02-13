@@ -55,10 +55,6 @@ public class TrapComponent {
 
     private final List<BlockPos> targetPositions = new ArrayList<>();
     private final List<BlockPos> placedPositions = new ArrayList<>(); // todo: finish this
-    private int cooldownTick = 0;
-    private boolean window = false;
-    private long windowOpenedTime = 0;
-    private int windowPlaced = 0;
 
     public TrapComponent(Feature feature) {
         range = feature.addSetting(new DoubleSetting("Range", 4.50, 1.0, 6.0));
@@ -120,11 +116,11 @@ public class TrapComponent {
         if (newTargets != null) targetPositions.addAll(newTargets);
 
         if (trapFeature.mode.get() == TrapFeature.Mode.TICKS) {
-            if (cooldownTick > 0)
+            if (trapFeature.tickCD > 0)
                 return;
         }
 
-        if (trapFeature.mode.get() == TrapFeature.Mode.MS && window && windowPlaced >= trapFeature.shiftTicks.get())
+        if (trapFeature.mode.get() == TrapFeature.Mode.MS && trapFeature.window && trapFeature.windowPlaced >= trapFeature.shiftTicks.get())
             return;
 
         if (attack.get() && !targetPositions.isEmpty()) {
@@ -167,7 +163,7 @@ public class TrapComponent {
                         continue;
                     if (!MC.level.getBlockState(around).canBeReplaced())
                         continue;
-                    if (!BlockUtils.isPlaceable(around))
+                    if (BlockUtils.isPlaceable(around))
                         continue;
 
                     extraTargets.add(around);
@@ -182,7 +178,7 @@ public class TrapComponent {
         for (BlockPos pos : targetPositions) {
 
             if (trapFeature.mode.get() == TrapFeature.Mode.MS) {
-                if (window && windowPlaced >= trapFeature.shiftTicks.get())
+                if (trapFeature.window && trapFeature.windowPlaced >= trapFeature.shiftTicks.get())
                     break;
             }
 
@@ -193,19 +189,21 @@ public class TrapComponent {
                 BlockPos foundationPos = pos.below();
                 if (place(foundationPos, getSlot(), airPlace.get(), grim.get(), owner)) {
                     blocksPlaced++;
+
                     if (trapFeature.mode.get() == TrapFeature.Mode.MS) {
-                        if (!window) {
-                            window = true;
-                            windowOpenedTime = System.currentTimeMillis();
-                            windowPlaced = 0;
+                        if (!trapFeature.window) {
+                            trapFeature.window = true;
+                            trapFeature.timer.reset();
+                            trapFeature.windowPlaced = 0;
                         }
-                        windowPlaced++;
+
+                        trapFeature.windowPlaced++;
                     }
                 }
             }
 
             if (trapFeature.mode.get() == TrapFeature.Mode.MS) {
-                if (window && windowPlaced >= trapFeature.shiftTicks.get())
+                if (trapFeature.window && trapFeature.windowPlaced >= trapFeature.shiftTicks.get())
                     break;
             }
 
@@ -216,19 +214,20 @@ public class TrapComponent {
                 placedPositions.add(pos);
                 blocksPlaced++;
                 if (trapFeature.mode.get() == TrapFeature.Mode.MS) {
-                    if (!window) {
-                        window = true;
-                        windowOpenedTime = System.currentTimeMillis();
-                        windowPlaced = 0;
+                    if (!trapFeature.window) {
+                        trapFeature.window = true;
+                        trapFeature.timer.reset();
+                        trapFeature.windowPlaced = 0;
                     }
-                    windowPlaced++;
+
+                    trapFeature.windowPlaced++;
                 }
             }
         }
 
         if (blocksPlaced > 0) {
             if (trapFeature.mode.get() == TrapFeature.Mode.TICKS) {
-                cooldownTick = trapFeature.delayTick.get();
+                trapFeature.tickCD = trapFeature.delayTick.get();
             }
         }
     }
@@ -318,15 +317,16 @@ public class TrapComponent {
 
     private void tickTimer(TrapFeature trapFeature) {
         if (trapFeature == null) return;
+
         if (trapFeature.mode.get() == TrapFeature.Mode.TICKS) {
-            if (cooldownTick > 0)
-                cooldownTick--;
+            if (trapFeature.tickCD > 0) {
+                trapFeature.tickCD--;
+            }
         } else {
-            if (window) {
-                long passed = System.currentTimeMillis() - windowOpenedTime;
-                if (passed >= (long) trapFeature.delayMilliseconds.get().floatValue()) {
-                    window = false;
-                    windowPlaced = 0;
+            if (trapFeature.window) {
+                if (trapFeature.timer.hasElapsed((long) trapFeature.delayMilliseconds.get().floatValue())) {
+                    trapFeature.window = false;
+                    trapFeature.windowPlaced = 0;
                 }
             }
         }

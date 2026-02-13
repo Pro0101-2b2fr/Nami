@@ -5,6 +5,7 @@ import namidevelopment.kiriyaga.api.annotation.SubscribeEvent;
 import namidevelopment.kiriyaga.api.event.impl.Render3DEvent;
 import namidevelopment.kiriyaga.api.model.feature.FeatureCategory;
 import namidevelopment.kiriyaga.api.model.feature.Feature;
+import namidevelopment.kiriyaga.api.util.entity.HostileUtils;
 import namidevelopment.kiriyaga.nami.impl.feature.client.ColorFeature;
 import namidevelopment.kiriyaga.api.annotation.RegisterFeature;
 import namidevelopment.kiriyaga.api.model.setting.BoolSetting;
@@ -14,6 +15,7 @@ import namidevelopment.kiriyaga.api.model.setting.IntSetting;
 import namidevelopment.kiriyaga.api.util.ColorUtils;
 import namidevelopment.kiriyaga.api.util.entity.EntityUtils;
 import namidevelopment.kiriyaga.api.util.render.RenderUtil;
+import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ScaffoldingBlock;
@@ -48,6 +50,7 @@ public class ESPFeature extends Feature {
     public final BoolSetting showHostiles = addSetting(new BoolSetting("Hostiles", false));
     public final BoolSetting showItems = addSetting(new BoolSetting("Items", true));
     public final BoolSetting itemBoundingBox = addSetting(new BoolSetting("ItemBoundingBox", true));
+    public final BoolSetting showCrystals = addSetting(new BoolSetting("Crystals", false));
     public final BoolSetting showMobSpawns = addSetting(new BoolSetting("MobSpawn", false));
     public final IntSetting mobSpawnLightThreshold = addSetting(new IntSetting("SpawnLight", 7, 0, 15));
     public final EnumSetting<RenderMode> renderMode = addSetting(new EnumSetting<>("Mode", RenderMode.GLOW));
@@ -58,6 +61,7 @@ public class ESPFeature extends Feature {
         outlineDistance.setShowCondition(() -> renderMode.get() == RenderMode.GLOW);
         itemBoundingBox.setShowCondition(() -> showItems.get());
         mobSpawnLightThreshold.setShowCondition(showMobSpawns::get);
+        showCrystals.setShowCondition(() -> renderMode.get() == RenderMode.GLOW);
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -155,29 +159,53 @@ public class ESPFeature extends Feature {
     }
 
     public static Color getESPColor(Entity entity) {
+        if (entity == null || entity.isRemoved() || !entity.isAlive()) return null;
+        if (MC.level == null || MC.player == null) return null;
         ESPFeature esp = FEATURE_SERVICE.getStorage().getByClass(ESPFeature.class);
         if (esp == null || !esp.isEnabled()) return null;
-
-        double d = FEATURE_SERVICE.getStorage().getByClass(ESPFeature.class).outlineDistance.get();
-
-        if (MC.getCameraEntity().distanceTo(entity) > d)
+        ColorFeature colors = FEATURE_SERVICE.getStorage().getByClass(ColorFeature.class);
+        if (colors == null) return null;
+        double maxDist = esp.outlineDistance.get();
+        if (MC.getCameraEntity() != null && MC.getCameraEntity().distanceTo(entity) > maxDist)
             return null;
 
-        if (entity == null || entity.isRemoved() || !entity.isAlive()) return null;
+        if (FEATURE_SERVICE.getStorage().getByClass(FreecamFeature.class).getCameraPos() != null && FEATURE_SERVICE.getStorage().getByClass(FreecamFeature.class).getCameraPos().distanceTo(entity.position()) > maxDist)
+            return null;
 
         if (entity instanceof Player player) {
             if (!esp.showPlayers.get()) return null;
-            return (SOCIALS_SERVICE.isFriend(player.getName().getString()) ? FEATURE_SERVICE.getStorage().getByClass(ColorFeature.class).getFriendColor() : FEATURE_SERVICE.getStorage().getByClass(ColorFeature.class).getStyledGlobalColor());
+
+            return SOCIALS_SERVICE.isFriend(player.getName().getString())
+                    ? colors.getFriendColor()
+                    : colors.getStyledGlobalColor();
         }
 
-        if (esp.showPeacefuls.get() && EntityUtils.getEntities(EntityUtils.EntityTypeCategory.PASSIVE).contains(entity)) return ColorUtils.COLOR_PASSIVE;
-        if (esp.showNeutrals.get() && EntityUtils.getEntities(EntityUtils.EntityTypeCategory.NEUTRAL).contains(entity)) return ColorUtils.COLOR_NEUTRAL;
-        if (esp.showHostiles.get() && EntityUtils.getEntities(EntityUtils.EntityTypeCategory.HOSTILE).contains(entity)) return ColorUtils.COLOR_HOSTILE;
+        if (entity instanceof EndCrystal) {
+            if (!esp.showCrystals.get()) return null;
+            return colors.getStyledGlobalColor();
+        }
+
         if (entity instanceof ItemEntity) {
             if (!esp.showItems.get()) return null;
             if (esp.itemBoundingBox.get()) return null;
             return ColorUtils.COLOR_ITEM;
         }
+
+        if (HostileUtils.isPassive(entity)) {
+            if (!esp.showPeacefuls.get()) return null;
+            return ColorUtils.COLOR_PASSIVE;
+        }
+
+        if (HostileUtils.isNeutral(entity)) {
+            if (!esp.showNeutrals.get()) return null;
+            return ColorUtils.COLOR_NEUTRAL;
+        }
+
+        if (HostileUtils.isHostile(entity)) {
+            if (!esp.showHostiles.get()) return null;
+            return ColorUtils.COLOR_HOSTILE;
+        }
+
         return null;
     }
 

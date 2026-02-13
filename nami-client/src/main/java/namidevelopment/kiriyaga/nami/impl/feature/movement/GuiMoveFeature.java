@@ -67,7 +67,7 @@ public class GuiMoveFeature extends Feature {
     */
     @SubscribeEvent
     public void onPacketReceive(PacketReceiveEvent ev){
-        if (!_2b2t.get())
+        if (!_2b2t.get() || MC == null)
             return;
 
         if (ev.getPacket() instanceof ClientboundContainerClosePacket packet && packet.getContainerId() == MC.player.inventoryMenu.containerId)

@@ -19,15 +19,8 @@ public class RotationTickHandler {
     private final RotationStateHandler stateHandler;
     private final RotationRequestHandler requestHandler;
 
-    private float rotationSpeed;
-    private float rotationEaseFactor;
-    private float rotationThreshold;
-    private int ticksBeforeRelease;
-//    private float jitterAmount;
-//    private float jitterSpeed;
     private float currentYawSpeed = 0f, currentPitchSpeed = 0f;
     private int ticksHolding = 0;
-    private boolean rotationJitter = false;
     private boolean returning = false;
 
     public RotationTickHandler(RotationStateHandler stateHandler, RotationRequestHandler requestHandler) {
@@ -44,7 +37,6 @@ public class RotationTickHandler {
         if (MC.player == null) return;
         RotationsFeatureConfig rotationsFeatureConfig = FeatureContractService.get(RotationsFeatureConfig.class);
 
-        loadSettings(rotationsFeatureConfig);
         stateHandler.updateRealRotation(MC.player.getYRot(), MC.player.getXRot());
 
         RotationRequest active = requestHandler.getActiveRequest();
@@ -116,15 +108,9 @@ public class RotationTickHandler {
         }
     }
 
-    private void loadSettings(RotationsFeatureConfig Feature) {
-        rotationSpeed = (float) Feature.getRotationSpeed();
-        rotationEaseFactor = (float) Feature.getRotationEase();
-        rotationThreshold = (float) Feature.getRotationThreshold();
-        ticksBeforeRelease = Feature.getHoldTicks();
-        rotationJitter = Feature.isJitterEnabled();
-    }
-
     private void processRequest(RotationRequest request) {
+        RotationsFeatureConfig rotationsFeatureConfig = FeatureContractService.get(RotationsFeatureConfig.class);
+
         if (!request.id.equals(requestHandler.getLastActiveId())) {
             resetRotationToReal();
             requestHandler.setLastActiveId(request.id);
@@ -142,10 +128,10 @@ public class RotationTickHandler {
         float yawDiff = yawDifference(request.targetYaw, stateHandler.getRotationYaw());
         float pitchDiff = request.targetPitch - stateHandler.getRotationPitch();
 
-        boolean reached = Math.abs(yawDiff) <= rotationThreshold && Math.abs(pitchDiff) <= rotationThreshold;
+        boolean reached = Math.abs(yawDiff) <= rotationsFeatureConfig.getRotationThreshold() && Math.abs(pitchDiff) <= rotationsFeatureConfig.getRotationThreshold();
 
         if (reached && !updated) {
-            if (++ticksHolding >= ticksBeforeRelease) {
+            if (++ticksHolding >= rotationsFeatureConfig.getHoldTicks()) {
                 requestHandler.removeActiveRequest();
                 ticksHolding = 0;
                 returning = true;
@@ -173,13 +159,14 @@ public class RotationTickHandler {
     }
 
     private void returnToRealRotation() {
+        RotationsFeatureConfig rotationsFeatureConfig = FeatureContractService.get(RotationsFeatureConfig.class);
         float targetYaw = alignYaw(stateHandler.getRealYaw(), stateHandler.getRotationYaw());
         float yawDiff = targetYaw - stateHandler.getRotationYaw();
         float pitchDiff = stateHandler.getRealPitch() - stateHandler.getRotationPitch();
 
         interpolateRotation(yawDiff, pitchDiff);
 
-        boolean backReached = Math.abs(yawDiff) <= rotationThreshold && Math.abs(pitchDiff) <= rotationThreshold;
+        boolean backReached = Math.abs(yawDiff) <= rotationsFeatureConfig.getRotationThreshold() && Math.abs(pitchDiff) <= rotationsFeatureConfig.getRotationThreshold();
         if (backReached) {
             returning = false;
             stateHandler.updateRealRotation(targetYaw, stateHandler.getRealPitch());
@@ -198,18 +185,20 @@ public class RotationTickHandler {
     }
 
     private void interpolateRotation(float yawDiff, float pitchDiff) {
-        currentYawSpeed = lerp(currentYawSpeed, yawDiff, rotationEaseFactor);
-        currentPitchSpeed = lerp(currentPitchSpeed, pitchDiff, rotationEaseFactor);
+        RotationsFeatureConfig rotationsFeatureConfig = FeatureContractService.get(RotationsFeatureConfig.class);
 
-        float yawSpeed = Mth.clamp(currentYawSpeed, -rotationSpeed, rotationSpeed);
-        float pitchSpeed = Mth.clamp(currentPitchSpeed, -rotationSpeed, rotationSpeed);
+        currentYawSpeed = lerp(currentYawSpeed, yawDiff, (float) rotationsFeatureConfig.getRotationEase());
+        currentPitchSpeed = lerp(currentPitchSpeed, pitchDiff, (float) rotationsFeatureConfig.getRotationEase());
+
+        float yawSpeed = (float) Mth.clamp(currentYawSpeed, -rotationsFeatureConfig.getRotationSpeed(), rotationsFeatureConfig.getRotationSpeed());
+        float pitchSpeed = (float) Mth.clamp(currentPitchSpeed, -rotationsFeatureConfig.getRotationSpeed(), rotationsFeatureConfig.getRotationSpeed());
 
         float newYaw = stateHandler.getRotationYaw() + yawSpeed;
         float newPitch = stateHandler.getRotationPitch() + pitchSpeed;
 
-        if (rotationJitter) {
-            float minJitter = rotationThreshold / 4f;
-            float maxJitter = rotationThreshold / 2;
+        if (rotationsFeatureConfig.getJitterMode() == RotationsFeatureConfig.JitterMode.NORMAL) {
+            float minJitter = (float) (rotationsFeatureConfig.getRotationThreshold() / 4f);
+            float maxJitter = (float) (rotationsFeatureConfig.getRotationThreshold() / 2);
             float jitterYaw = minJitter + (float) (Math.random() * (maxJitter - minJitter));
             float jitterPitch = minJitter + (float) (Math.random() * (maxJitter - minJitter));
             jitterYaw *= Math.random() < 0.5 ? -1 : 1;
@@ -219,6 +208,9 @@ public class RotationTickHandler {
             newPitch += jitterPitch;
 
             newPitch = Mth.clamp(newPitch, -90f, 90f);
+        } else if (rotationsFeatureConfig.getJitterMode() == RotationsFeatureConfig.JitterMode.GRIM) {
+            float f = (float)((Math.random() * 2.0 - 1.0) * 0.001f);
+            newPitch = Mth.clamp(newPitch + f, -90.0F, 90.0F);
         }
 
 //        RotationSERVICEFeature Feature = Feature_SERVICE.getStorage().getByClass(RotationSERVICEFeature.class);

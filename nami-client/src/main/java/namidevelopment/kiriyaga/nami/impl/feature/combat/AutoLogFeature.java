@@ -34,7 +34,6 @@ public class AutoLogFeature extends Feature {
     public final BoolSetting packet = addSetting(new BoolSetting("Packet", false));
     public final BoolSetting onPop = addSetting(new BoolSetting("OnPop", false));
     public final IntSetting onLevel = addSetting(new IntSetting("OnLevel", 0, 0, 15000));
-    public final BoolSetting selfToggle = addSetting(new BoolSetting("SelfToggle", true));
 
     private boolean triggeredLevel = false;
     private boolean loggingOut = false;
@@ -42,6 +41,12 @@ public class AutoLogFeature extends Feature {
     public AutoLogFeature() {
         super("AutoLog", "Automatically logs out in certain conditions.", FeatureCategory.of("Combat"), "autolog", "panic", "logout");
         packet.setShowCondition(() -> onRender.get());
+    }
+
+    @Override
+    public void onEnable() {
+        loggingOut = false;
+        triggeredLevel = false;
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -141,8 +146,7 @@ public class AutoLogFeature extends Feature {
 
 
     private void triggerToggle(){
-        if (selfToggle.get())
-            this.toggle();
+        this.toggle();
 
         if (FEATURE_SERVICE.getStorage().getByClass(AutoReconnectFeature.class).isEnabled())
             FEATURE_SERVICE.getStorage().getByClass(AutoReconnectFeature.class).toggle();

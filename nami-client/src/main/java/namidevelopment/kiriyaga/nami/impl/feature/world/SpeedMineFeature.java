@@ -7,6 +7,7 @@ import namidevelopment.kiriyaga.api.event.impl.PacketReceiveEvent;
 import namidevelopment.kiriyaga.api.event.impl.PreTickEvent;
 import namidevelopment.kiriyaga.api.event.impl.Render3DEvent;
 import namidevelopment.kiriyaga.api.event.impl.StartBreakingBlockEvent;
+import namidevelopment.kiriyaga.api.mixininterface.IClientPlayerInteractionManager;
 import namidevelopment.kiriyaga.api.model.feature.Feature;
 import namidevelopment.kiriyaga.api.model.feature.FeatureCategory;
 import namidevelopment.kiriyaga.api.annotation.RegisterFeature;
@@ -58,8 +59,8 @@ public class SpeedMineFeature extends Feature {
     public final BoolSetting grim = addSetting(new BoolSetting("Grim", false));
     public final BoolSetting doubleMine = addSetting(new BoolSetting("DoubleMine", false));
     public final BoolSetting instant = addSetting(new BoolSetting("Instant", true));
+    public final BoolSetting asyncRemine = addSetting(new BoolSetting("AsyncRemine", true));
     public final BoolSetting swing = addSetting(new BoolSetting("Swing", true));
-    public final BoolSetting async = addSetting(new BoolSetting("Async", true));
     public final BoolSetting multitask = addSetting(new BoolSetting("Multitask", false));
     public final BoolSetting allowOffhand = addSetting(new BoolSetting("AllowOffhand", false));
     public final EnumSetting<EchestPriority> echestPriority = addSetting(new EnumSetting<>("Echest", EchestPriority.SILK));
@@ -77,6 +78,7 @@ public class SpeedMineFeature extends Feature {
         echestPriority.setShowCondition(()-> swap.get() != Swap.NONE);
         damageThreshold.setShowCondition(()-> swap.get() != Swap.NONE);
         allowOffhand.setShowCondition(()-> !multitask.get());
+        asyncRemine.setShowCondition(instant::get);
     }
 
     @Override
@@ -135,7 +137,7 @@ public class SpeedMineFeature extends Feature {
         currentTask = new BlockBreakingTask(event.blockPos, event.direction, speed.get().floatValue());
         startMining(currentTask);
 
-        float damageDelta = calculateBlockDamage(currentTask.getBlockState(), MC.level, currentTask.getBlockPos());
+        float damageDelta = calculateBlockDamage(currentTask.getStartState(), MC.level, currentTask.getBlockPos());
         if (damageDelta >= 0.100f)
             finishMining(currentTask);
     }
@@ -158,7 +160,7 @@ public class SpeedMineFeature extends Feature {
         if (MC.level.getBlockState(pos).isAir())
             return;
 
-        VoxelShape shape = task.isInstantRemine() ? Shapes.block() : task.getBlockState().getShape(MC.level, pos);
+        VoxelShape shape = task.isInstantRemine() ? Shapes.block() : task.getStartState().getShape(MC.level, pos);
 
         if (shape.isEmpty()) shape = Shapes.block();
 
@@ -211,9 +213,11 @@ public class SpeedMineFeature extends Feature {
             if (instant.get()) {
                 task.markInstantRemine();
                 task.setProgress(1.0f);
-            } else
+            } else {
                 task.resetProgress();
-            return;
+            }
+            if (!asyncRemine.get())
+                return;
         }
 
         if (swing.get())
@@ -223,7 +227,7 @@ public class SpeedMineFeature extends Feature {
             ROTATION_SERVICE.getRequestHandler().submit(new RotationRequest(this.name, 8, getYawToVec(MC.player, getClosestPointToEye(eyePos, blockBox)), getPitchToVec(MC.player, getClosestPointToEye(eyePos, blockBox))));
 
 
-        float damageDelta = calculateBlockDamage(task.getBlockState(), MC.level, task.getBlockPos());
+        float damageDelta = calculateBlockDamage(task.getStartState(), MC.level, task.getBlockPos());
         if (task.incrementProgress(damageDelta) >= task.getTargetSpeed() || task.isInstantRemine()) {
             finishMining(task);
         }
@@ -260,7 +264,7 @@ public class SpeedMineFeature extends Feature {
             if (!multitask.get() && MC.player.isUsingItem())return;
 
             if (swap.get() == Swap.SILENT121 || swap.get() == Swap.SILENT) {
-                int slot = getSlot(task.getBlockState());
+                int slot = getSlot(task.getStartState());
                 task.setDoublemineHoldTicks(task.doublemineHoldTicks+1);
                 if (slot == MC.player.getInventory().getSelectedSlot())
                     return;
@@ -280,7 +284,7 @@ public class SpeedMineFeature extends Feature {
         if (task.getBlockState().isAir()) return;
 
         if (swap.get() == Swap.NORMAL)
-            InventoryUtils.attemptSwitch(getSlot(task.getBlockState()));
+            InventoryUtils.attemptSwitch(getSlot(task.getStartState()));
 
         if (grim.get())
             sendDestroyPacket(ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK, task);
@@ -305,14 +309,14 @@ public class SpeedMineFeature extends Feature {
     }
 
     private void finishMining(BlockBreakingTask task) {
-        if (!task.isStarted() || task.getBlockState().isAir() && !async.get()) return;
+        if (!task.isStarted() || task.getBlockState().isAir() && !asyncRemine.get()) return;
         if (!multitask.get() && MC.player.isUsingItem()) {
             if (!(allowOffhand.get() && MC.player.getUsedItemHand() == InteractionHand.OFF_HAND)) { // yo somehow on some paper servers we can do it
                 return;
             }
         }
 
-        if (currentTask.lastBrokenCount == currentTask.brokenCount && !async.get())
+        if (currentTask.lastBrokenCount == currentTask.brokenCount && !asyncRemine.get())
             return;
 
         Vec3 eyePos = MC.player.getEyePosition();
@@ -326,7 +330,7 @@ public class SpeedMineFeature extends Feature {
 
         int prev = MC.player.getInventory().getSelectedSlot();
         if (swap.get() == Swap.SILENT121 || swap.get() == Swap.SILENT) {
-            int slot = getSlot(task.getBlockState());
+            int slot = getSlot(task.getStartState());
             if (slot != MC.player.getInventory().getSelectedSlot()) {
                 if (currentTask.brokenCount < 2 || !currentTask.isInstantRemine())
                     if (swap.get() != Swap.SILENT)
@@ -477,6 +481,8 @@ public class SpeedMineFeature extends Feature {
         private final Direction facing;
         private final float targetSpeed;
 
+        private final BlockState startState;
+
         private float progress;
         private float previousProgress;
         private boolean instantRemine;
@@ -489,6 +495,9 @@ public class SpeedMineFeature extends Feature {
             this.blockPos = pos;
             this.facing = face;
             this.targetSpeed = speed;
+
+            this.startState = MC.level.getBlockState(pos);
+
             brokenCount = 0;
             lastBrokenCount = -1;
             doublemineHoldTicks = 0;
@@ -497,17 +506,22 @@ public class SpeedMineFeature extends Feature {
         public BlockPos getBlockPos() { return blockPos; }
         public Direction getFacing() { return facing; }
         public float getTargetSpeed() { return targetSpeed; }
+
         public BlockState getBlockState() { return MC.level.getBlockState(blockPos); }
+
+        public BlockState getStartState() { return startState; }
 
         public boolean isStarted() { return started; }
         public void markStarted() { this.started = true; }
 
         public float getProgress() { return progress; }
         public float getPreviousProgress() { return previousProgress; }
+
         public float incrementProgress(float delta) {
             this.previousProgress = progress;
             return (progress += delta);
         }
+
         public void setProgress(float value) {
             this.previousProgress = progress;
             this.progress = value;

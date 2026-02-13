@@ -17,7 +17,8 @@ public class WatermarkFeature extends HudElementFeature {
 
     @Override
     public Component getDisplayText() {
-        String watermarkStr = DISPLAY_NAME + " " + VERSION;
+        String v = "v"+VERSION;
+        String watermarkStr = DISPLAY_NAME + " " + v;
         if (watermarkStr.isEmpty()) {
             return CAT_FORMAT.format("{global}NaN");
         }
@@ -25,6 +26,6 @@ public class WatermarkFeature extends HudElementFeature {
         width = FONT_SERVICE.getWidth(watermarkStr);
         height = FONT_SERVICE.getHeight();
 
-        return plain.get() ? CAT_FORMAT.format("{global}" + DISPLAY_NAME + " v"+ VERSION) : CAT_FORMAT.format("{global}" + DISPLAY_NAME + " {white}v"+ VERSION);
+        return plain.get() ? CAT_FORMAT.format("{global}" + DISPLAY_NAME + v) : CAT_FORMAT.format("{global}" + DISPLAY_NAME + " {white}"+ v);
     }
 }

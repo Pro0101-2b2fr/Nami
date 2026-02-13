@@ -8,6 +8,7 @@ import namidevelopment.kiriyaga.api.model.feature.Feature;
 import namidevelopment.kiriyaga.api.model.setting.BoolSetting;
 import namidevelopment.kiriyaga.api.model.setting.DoubleSetting;
 import namidevelopment.kiriyaga.api.model.setting.IntSetting;
+import namidevelopment.kiriyaga.api.util.BlockUtils;
 import namidevelopment.kiriyaga.api.util.InteractionUtils;
 import namidevelopment.kiriyaga.api.util.render.RenderUtil;
 import namidevelopment.kiriyaga.nami.impl.feature.client.ColorFeature;
@@ -160,8 +161,14 @@ public class TrapComponent {
 
                     BlockPos around = pos.relative(dir);
 
-                    if (targetPositions.contains(around)) continue;
-                    if (extraTargets.contains(around)) continue;
+                    if (targetPositions.contains(around))
+                        continue;
+                    if (extraTargets.contains(around))
+                        continue;
+                    if (!MC.level.getBlockState(around).canBeReplaced())
+                        continue;
+                    if (!BlockUtils.isPlaceable(around))
+                        continue;
 
                     extraTargets.add(around);
                 }

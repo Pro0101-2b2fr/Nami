@@ -324,9 +324,10 @@ public class AutoCrystalFeature extends Feature {
 
     private void doBreak() {
         BreakTarget target = bestCrystal();
-        if (target == null) return;
-
-        if (!breakMultitask.get() && MC.player.isUsingItem()) return;
+        if (target == null || !breakMultitask.get() && MC.player.isUsingItem()) {
+            reset();
+            return;
+        }
 
         if (breakRotate.get()) {
             Vec3 pos = getClosestPointToEye(MC.player.getEyePosition(), target.crystal.getBoundingBox());
@@ -402,8 +403,10 @@ public class AutoCrystalFeature extends Feature {
     }
 
     private void doPlace(PlaceTarget target) {
-        if (target == null) return;
-        if (target.totalDamage < 0) return;
+        if (target == null || target.totalDamage < 0 || MC.player.isUsingItem() && !placeMultitask.get()){
+            reset();
+            return;
+        }
 
         InteractionUtils.interactBlockAt(target.pos.below(), Items.END_CRYSTAL, null, placeSwapBack.get(), placeMultitask.get(), placeRange.get(), placeRotate.get(), placeStrictDirection.get(), false, placeSwing.get(), AutoCrystalFeature.class.getName() + "_PLACE");
 
@@ -736,8 +739,8 @@ public class AutoCrystalFeature extends Feature {
     }
 
     private float calculateDamage(Vec3 crystalPos, boolean b) {
-        float total = -1f;
-         boolean any = false;
+        float total = 0f;
+        boolean any = false;
         Set<BlockPos> ignored = ignoredBlocks(b);
 
         for (Entity e : EntityUtils.getEntities(EntityUtils.EntityTypeCategory.PLAYERS, 12)) {
@@ -751,6 +754,8 @@ public class AutoCrystalFeature extends Feature {
 
                 if (dmg + 1.5f >= MC.player.getHealth() + MC.player.getAbsorptionAmount())
                     return -1f;
+
+                continue;
             }
 
             if (SOCIALS_SERVICE.isFriend(e.getName().getString())) continue;
@@ -769,9 +774,7 @@ public class AutoCrystalFeature extends Feature {
     }
 
     private void update() {
-        lastPlaceTarget = null;
-        lastTotalDamage = 0;
-        lastCalcTimeMs = 0;
+        reset();
 
         if (MC.player.tickCount % 100 == 0)
             deadIds.clear();
@@ -787,6 +790,12 @@ public class AutoCrystalFeature extends Feature {
                 crystalPlaces.put(key, age);
             }
         }
+    }
+
+    private void reset(){
+        lastPlaceTarget = null;
+        lastTotalDamage = 0;
+        lastCalcTimeMs = 0;
     }
 
     private double getMinDamage(float health, float absorption, boolean armorBroken) {

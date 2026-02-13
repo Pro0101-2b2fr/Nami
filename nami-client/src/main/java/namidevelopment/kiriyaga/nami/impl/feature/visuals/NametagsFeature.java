@@ -123,7 +123,7 @@ public class NametagsFeature extends Feature {
 
             Component display = CAT_FORMAT.format(colored);
             float scale = 1.0f;if (dynamicScale.get()) {
-                float dist = MC.getCameraEntity().distanceTo(ent);
+                float dist = (float) FEATURE_SERVICE.getStorage().getByClass(FreecamFeature.class).pos.distanceTo(ent.position());
                 scale = Math.max(0.5f, Math.min(1.0f, 20.0f / dist));
             }
 
@@ -217,7 +217,7 @@ public class NametagsFeature extends Feature {
 
                     float scale = 1.0f;
                     if (dynamicScale.get()) {
-                        float dist = MC.getCameraEntity().distanceTo(item);
+                        float dist = (float) FEATURE_SERVICE.getStorage().getByClass(FreecamFeature.class).pos.distanceTo(item.position());
                         scale = Math.max(0.5f, Math.min(1.0f, 20.0f / dist));
                     }
 

@@ -1,10 +1,15 @@
 package namidevelopment.kiriyaga.api.core.font;
 
 public enum FontType {
-    VERDANA("verdana.ttf"),
-    VERDANAPRO("verdanapro.ttf"),
     ARIAL("arial.ttf"),
-    ROBOTO("roboto.ttf");
+    ARIALBD("arialbd.ttf"),
+    ARIALBI("arialbi.ttf"),
+    ARIALI("ariali.ttf"),
+    ARIALBLK("arialblk.ttf"),
+    VERDANA("verdana.ttf"),
+    VERDANAB("verdanab.ttf"),
+    VERDANAI("verdanai.ttf"),
+    VERDANAZ("verdanaz.ttf");
 
     private final String fileName;
 

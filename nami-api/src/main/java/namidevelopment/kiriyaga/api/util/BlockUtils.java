@@ -249,23 +249,17 @@ public class BlockUtils {
 
     public static  void addSurroundForBase(BlockPos base, Set<BlockPos> positions) {
         BlockPos below = base.below();
-        addIfValid(below, positions);
+        positions.add(below);
 
         BlockPos north = base.north();
         BlockPos south = base.south();
         BlockPos east  = base.east();
         BlockPos west  = base.west();
 
-        addIfValid(north, positions);
-        addIfValid(south, positions);
-        addIfValid(east, positions);
-        addIfValid(west, positions);
-    }
-
-    public static  void addIfValid(BlockPos pos, Set<BlockPos> positions) {
-        if (isReplaceable(pos)) {
-            positions.add(pos);
-        }
+        positions.add(north);
+        positions.add(south);
+        positions.add(east);
+        positions.add(west);
     }
 
     public static  void expand(Set<BlockPos> positions, Player player, boolean extension) {

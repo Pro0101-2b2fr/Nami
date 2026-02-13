@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static namidevelopment.kiriyaga.api.NamiApi.MC;
+import static namidevelopment.kiriyaga.api.util.BlockUtils.isPlaceable;
 
 @RegisterFeature
 public class HeadTrapFeature extends Feature {
@@ -53,12 +54,15 @@ public class HeadTrapFeature extends Feature {
             return Collections.emptyList();
         }
         BlockPos pos = MC.player.blockPosition();
-        BlockPos target = pos.above(2);
+        BlockPos b = pos.above(2);
 
         if (MC.player.isVisuallyCrawling()) {
-            target = pos.above(1);
+            b = pos.above(1);
         }
 
-        return Collections.singletonList(target);
+        if (!isPlaceable(b))
+            return Collections.singletonList(b);
+
+        return Collections.emptyList();
     }
 }

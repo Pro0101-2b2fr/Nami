@@ -1,7 +1,6 @@
 package namidevelopment.kiriyaga.nami.impl.feature.combat.autocrystal;
 
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import namidevelopment.kiriyaga.api.annotation.SubscribeEvent;
@@ -79,8 +78,6 @@ public class AutoCrystalFeature extends Feature {
     public final BoolSetting placeSwapBack = addSetting(new BoolSetting("PlaceSwapBack","SwapBack", true));
     public final BoolSetting placeMultitask = addSetting(new BoolSetting("PlaceMultitask","Multitask", false));
     public final BoolSetting placeIgnoreTerrain = addSetting(new BoolSetting("PlaceIgnoreTerrain","IgnoreTerrain", true));
-    public final BoolSetting placeAntiFeetTrap = addSetting(new BoolSetting("PlaceAntiFeetTrap", "AntiFeetTrap", true));
-    public final DoubleSetting placeAntiFeetTrapFactor = addSetting(new DoubleSetting("PlaceAntiFeetTrapFactor","Factor", 0.80, 0.5, 1.00));
 
     //break
     public final BoolSetting doBreak = addSetting(new BoolSetting("Break", true));
@@ -101,6 +98,8 @@ public class AutoCrystalFeature extends Feature {
     public final IntSetting balance = addSetting(new IntSetting("Balance", 4, 2, 6));
     public final DoubleSetting healthBalance = addSetting(new DoubleSetting("HealthBalance", 0.20, 0.00, 1.00));
     public final DoubleSetting armorBalance = addSetting(new DoubleSetting("ArmorBalance", 0.20, 0.00, 1.00));
+    public final BoolSetting antiFeetTrap = addSetting(new BoolSetting("AntiFeetTrap", true));
+    public final DoubleSetting antiFeetTrapFactor = addSetting(new DoubleSetting("Factor", 0.80, 0.5, 1.00));
 
     //render
     public final BoolSetting render = addSetting(new BoolSetting("Render", true));
@@ -146,8 +145,8 @@ public class AutoCrystalFeature extends Feature {
         placeIgnoreCrystals.setShowCondition(() -> doPlace.get() && page.get() == Page.PLACE);
         placeStrictDirection.setShowCondition(() -> doPlace.get() && page.get() == Page.PLACE);
         placeIgnoreTerrain.setShowCondition(() -> doPlace.get() && page.get() == Page.PLACE);
-        placeAntiFeetTrap.setShowCondition(() -> doPlace.get() && page.get() == Page.PLACE);
-        placeAntiFeetTrapFactor.setShowCondition(() -> doPlace.get() && page.get() == Page.PLACE && placeAntiFeetTrap.get());
+        antiFeetTrap.setShowCondition(() -> doPlace.get() && page.get() == Page.PLACE);
+        antiFeetTrapFactor.setShowCondition(() -> doPlace.get() && page.get() == Page.PLACE && antiFeetTrap.get());
 
         noSelfPop.setShowCondition(() ->  page.get() == Page.DAMAGES);
         minDamage.setShowCondition(() -> page.get() == Page.DAMAGES);
@@ -207,7 +206,7 @@ public class AutoCrystalFeature extends Feature {
 
             Vec3 crystalPos = new Vec3(base.getX() + 0.5, base.getY() + 1.0, base.getZ() + 0.5);
 
-            float realDamage = calculateDamage(crystalPos, true);
+            float realDamage = calculateDamage(crystalPos);
 
             if (realDamage > 0.0f) {
                 bestPlace = new PlaceTarget(pos, realDamage);
@@ -365,7 +364,7 @@ public class AutoCrystalFeature extends Feature {
 
             long posKey = crystal.blockPosition().asLong();
 
-            if (crystal.tickCount < 20 && !crystalPlaces.containsKey(posKey))
+            if (crystal.tickCount < 5 && !crystalPlaces.containsKey(posKey))
                 continue;
 
             //   if (MC.player.distanceToSqr(crystal) > 10 * 10) continue;
@@ -378,7 +377,7 @@ public class AutoCrystalFeature extends Feature {
 
             if (!insideBox && perfect == null) continue;
 
-            float totalDamage = calculateDamage(crystal.position(), false);
+            float totalDamage = calculateDamage(crystal.position());
             if (totalDamage <= -0.9f)
                 continue;
 
@@ -483,7 +482,7 @@ public class AutoCrystalFeature extends Feature {
         int rr = r * r;
 
         ArrayList<BlockPos> candidates = new ArrayList<>();
-        Set<BlockPos> ignored = ignoredBlocks(true);
+        Set<BlockPos> ignored = ignoredBlocks();
 
         for (int x = -r; x <= r; x++) {
             for (int y = -r; y <= r; y++) {
@@ -698,7 +697,7 @@ public class AutoCrystalFeature extends Feature {
         return damage * (1.0F - k);
     }
 
-    private Set<BlockPos> ignoredBlocks(boolean b) {
+    private Set<BlockPos> ignoredBlocks() {
         Set<BlockPos> ignored = new HashSet<>();
 
         if (placeIgnoreTerrain.get()) {
@@ -721,15 +720,15 @@ public class AutoCrystalFeature extends Feature {
             }
         }
 
-        if (b && placeAntiFeetTrap.get()) {
+        if (antiFeetTrap.get()) {
             SpeedMineFeature sm = FEATURE_SERVICE.getStorage().getByClass(SpeedMineFeature.class);
 
             if (sm != null) {
-                if (sm.currentTask != null && sm.currentTask.getProgress() >= placeAntiFeetTrapFactor.get()) {
+                if (sm.currentTask != null && sm.currentTask.getProgress() >= antiFeetTrapFactor.get()) {
                     ignored.add(sm.currentTask.getBlockPos());
                 }
 
-                if (sm.doubleMineTask != null && sm.doubleMineTask.getProgress() >= placeAntiFeetTrapFactor.get()) {
+                if (sm.doubleMineTask != null && sm.doubleMineTask.getProgress() >= antiFeetTrapFactor.get()) {
                     ignored.add(sm.doubleMineTask.getBlockPos());
                 }
             }
@@ -738,10 +737,10 @@ public class AutoCrystalFeature extends Feature {
         return ignored;
     }
 
-    private float calculateDamage(Vec3 crystalPos, boolean b) {
+    private float calculateDamage(Vec3 crystalPos) {
         float total = 0f;
         boolean any = false;
-        Set<BlockPos> ignored = ignoredBlocks(b);
+        Set<BlockPos> ignored = ignoredBlocks();
 
         for (Entity e : EntityUtils.getEntities(EntityUtils.EntityTypeCategory.PLAYERS, 12)) {
             if (!(e instanceof Player player)) continue;

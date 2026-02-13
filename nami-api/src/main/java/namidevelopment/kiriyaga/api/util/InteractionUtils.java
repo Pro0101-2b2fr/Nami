@@ -19,6 +19,9 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static namidevelopment.kiriyaga.api.NamiApi.*;
 import static namidevelopment.kiriyaga.api.util.PacketUtils.sendSequencedPacket;
 import static namidevelopment.kiriyaga.api.util.RotationUtils.*;
@@ -109,7 +112,6 @@ public class InteractionUtils {
     }
 
     // TODO: figure out how to place on interactable blocks without manually sneaking
-
     public static boolean placeBlock(BlockPos pos, Item item, boolean swapBack, double range, boolean rotate, boolean strictDirection, boolean simulate, boolean swing, String rotationId, boolean multitask) {
         if (!MC.level.getBlockState(pos).canBeReplaced())
             return false;
@@ -131,13 +133,38 @@ public class InteractionUtils {
         if (slot == -1 && !isOffhand)
             return false;
 
-        Direction direction = getBlockPlaceDir(pos);
-        if (direction == null) {
-            return false;
+        List<Direction> directions = getBlockPlaceDir(pos);
+
+        if (directions.isEmpty()) return false;
+
+        Direction clickFace = null;
+        BlockPos neighbor = null;
+
+        // Simplified grim v2 PlacePosition check
+        if (strictDirection) {
+        for (Direction dir : directions) {
+            BlockPos n = pos.relative(dir.getOpposite());
+            boolean flag = switch (dir) {  // https://github.com/GrimAnticheat/Grim/blob/fb926ab0fbca081ad765389c541880a4a435fabb/common/src/main/java/ac/grim/grimac/checks/impl/scaffolding/PositionPlace.java#L49
+                case NORTH -> eyePos.z <= n.getZ() + 1e-3;
+                case SOUTH -> eyePos.z >= n.getZ() + 1 - 1e-3;
+                case WEST  -> eyePos.x <= n.getX() + 1e-3;
+                case EAST  -> eyePos.x >= n.getX() + 1 - 1e-3;
+                case DOWN  -> eyePos.y <= n.getY() + 1e-3;
+                case UP    -> eyePos.y >= n.getY() + 1 - 1e-3;
+            };
+
+            if (flag) {
+                clickFace = dir;
+                neighbor = n;
+                break;
+            }
         }
 
-        BlockPos neighbor = pos.relative(direction.getOpposite());
-        Direction clickFace = direction;
+        if (clickFace == null) return false;
+        } else {
+            clickFace = directions.get(0);
+            neighbor = pos.relative(clickFace.getOpposite());
+        }
 
         Vec3 playerPos = MC.player.position();
         double offX = playerPos.x - Math.floor(playerPos.x);
@@ -166,24 +193,6 @@ public class InteractionUtils {
                     offY - 0.5,
                     offZ - 0.5
             );
-        }
-
-        // Simplified grim v2 PlacePosition check
-        // we do not use all possible eye positions because its just unnecessary
-        if (strictDirection) { // todo something while phased
-            boolean flag = switch (clickFace) { // https://github.com/GrimAnticheat/Grim/blob/fb926ab0fbca081ad765389c541880a4a435fabb/common/src/main/java/ac/grim/grimac/checks/impl/scaffolding/PositionPlace.java#L49
-                case NORTH -> eyePos.z <= neighbor.getZ() + 1e-3;
-                case SOUTH -> eyePos.z >= neighbor.getZ() + 1 - 1e-3;
-                case WEST  -> eyePos.x <= neighbor.getX() + 1e-3;
-                case EAST  -> eyePos.x >= neighbor.getX() + 1 - 1e-3;
-                case DOWN  -> eyePos.y <= neighbor.getY() + 1e-3;
-                case UP    -> eyePos.y >= neighbor.getY() + 1 - 1e-3;
-                default -> false;
-            };
-
-            if (!flag) {
-                return false;
-            }
         }
 
         BlockHitResult hitResult = new BlockHitResult(hitVec, clickFace, neighbor, false);
@@ -405,19 +414,20 @@ public class InteractionUtils {
         }
     }
 
+    public static List<Direction> getBlockPlaceDir(BlockPos blockPos) {
+        List<Direction> dirs = new ArrayList<>();
+        for (Direction direction : Direction.values()) {
+            BlockPos neighborPos = blockPos.relative(direction);
+            BlockState state = MC.level.getBlockState(neighborPos);
 
-    public static Direction getBlockPlaceDir(BlockPos blockPos) {
-        for (final Direction direction : Direction.values()) {
-            final BlockState state = MC.level.getBlockState(blockPos.relative(direction));
             if (state.isAir() || !state.getFluidState().isEmpty()) {
                 continue;
             }
-
             Direction opposite = direction.getOpposite();
 
-            return opposite;
+            dirs.add(opposite);
         }
-        return null;
+        return dirs;
     }
 
     public static void airPlace(BlockHitResult target, boolean grim, boolean swing) {

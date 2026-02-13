@@ -43,7 +43,6 @@ public class TrapComponent {
     public final BoolSetting multiTask;
     public final BoolSetting simulate;
     public final BoolSetting antiBreak;
-    public final BoolSetting foundation;
     public final BoolSetting swing;
     public final BoolSetting render;
     public final BoolSetting attack;
@@ -66,7 +65,6 @@ public class TrapComponent {
         multiTask = feature.addSetting(new BoolSetting("MultiTask", false));
         simulate = feature.addSetting(new BoolSetting("Simulate", false));
         antiBreak = feature.addSetting(new BoolSetting("AntiBreak", false));
-        foundation = feature.addSetting(new BoolSetting("Foundation", false));
         swing = feature.addSetting(new BoolSetting("Swing", true));
         render = feature.addSetting(new BoolSetting("Render", true));
         attack = feature.addSetting(new BoolSetting("Attack", false));
@@ -185,23 +183,6 @@ public class TrapComponent {
             if (blocksPlaced >= trapFeature.shiftTicks.get())
                 break;
 
-            if (foundation.get()) {
-                BlockPos foundationPos = pos.below();
-                if (place(foundationPos, getSlot(), airPlace.get(), grim.get(), owner)) {
-                    blocksPlaced++;
-
-                    if (trapFeature.mode.get() == TrapFeature.Mode.MS) {
-                        if (!trapFeature.window) {
-                            trapFeature.window = true;
-                            trapFeature.timer.reset();
-                            trapFeature.windowPlaced = 0;
-                        }
-
-                        trapFeature.windowPlaced++;
-                    }
-                }
-            }
-
             if (trapFeature.mode.get() == TrapFeature.Mode.MS) {
                 if (trapFeature.window && trapFeature.windowPlaced >= trapFeature.shiftTicks.get())
                     break;
@@ -242,6 +223,9 @@ public class TrapComponent {
 
         for (BlockPos pos : targetPositions) {
             if (!MC.level.getBlockState(pos).canBeReplaced())
+                continue;
+
+            if (BlockUtils.isPlaceable(pos))
                 continue;
 
             AABB box = new AABB(pos);

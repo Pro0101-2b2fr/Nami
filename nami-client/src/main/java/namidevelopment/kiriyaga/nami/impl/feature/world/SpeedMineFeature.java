@@ -481,7 +481,7 @@ public class SpeedMineFeature extends Feature {
         private final Direction facing;
         private final float targetSpeed;
 
-        private final BlockState startState;
+        private BlockState startState;
 
         private float progress;
         private float previousProgress;
@@ -509,7 +509,16 @@ public class SpeedMineFeature extends Feature {
 
         public BlockState getBlockState() { return MC.level.getBlockState(blockPos); }
 
-        public BlockState getStartState() { return startState; }
+        public BlockState getStartState() {
+            BlockState b = getBlockState();
+
+            if (!b.isAir() && b.getBlock() != startState.getBlock()) {
+                startState = b;
+            }
+
+            return startState;
+        }
+
 
         public boolean isStarted() { return started; }
         public void markStarted() { this.started = true; }

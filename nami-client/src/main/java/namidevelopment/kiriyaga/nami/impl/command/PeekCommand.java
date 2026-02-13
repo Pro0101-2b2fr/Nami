@@ -1,24 +1,30 @@
 package namidevelopment.kiriyaga.nami.impl.command;
 
-import namidevelopment.kiriyaga.api.util.container.ContainerUtils;
-import namidevelopment.kiriyaga.api.model.command.Command;
-import namidevelopment.kiriyaga.api.model.command.CommandArgument;
 import namidevelopment.kiriyaga.api.annotation.RegisterCommand;
+import namidevelopment.kiriyaga.api.model.command.Command;
+import namidevelopment.kiriyaga.api.model.command.CommandRoute;
+import namidevelopment.kiriyaga.api.util.container.ContainerUtils;
 import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.item.ItemStack;
 
 import static namidevelopment.kiriyaga.api.NamiApi.*;
-import static namidevelopment.kiriyaga.nami.Nami.*;
 
 @RegisterCommand
 public class PeekCommand extends Command {
 
     public PeekCommand() {
-        super("peek", new CommandArgument[0]);
+        super("peek");
     }
 
     @Override
-    public void execute(Object[] parsedArgs) {
+    public CommandRoute[] getRoutes() {
+        return new CommandRoute[] {
+                new CommandRoute(null)
+        };
+    }
+
+    @Override
+    public void execute(String route, Object[] args) {
         MC.execute(() -> {
             ItemStack main = MC.player.getMainHandItem();
             ItemStack off = MC.player.getOffhandItem();

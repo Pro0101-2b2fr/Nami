@@ -1,8 +1,8 @@
 package namidevelopment.kiriyaga.nami.impl.command;
 
-import namidevelopment.kiriyaga.api.model.command.Command;
-import namidevelopment.kiriyaga.api.model.command.CommandArgument;
 import namidevelopment.kiriyaga.api.annotation.RegisterCommand;
+import namidevelopment.kiriyaga.api.model.command.Command;
+import namidevelopment.kiriyaga.api.model.command.CommandRoute;
 import net.minecraft.network.chat.MutableComponent;
 
 import java.util.List;
@@ -13,26 +13,30 @@ import static namidevelopment.kiriyaga.api.NamiApi.*;
 @RegisterCommand
 public class HelpCommand extends Command {
 
-    public HelpCommand() {super("help", new CommandArgument[] {});}
+    public HelpCommand() {
+        super("help");
+    }
 
     @Override
-    public void execute(Object[] args) {
+    public CommandRoute[] getRoutes() {
+        return new CommandRoute[] {
+                new CommandRoute(null)
+        };
+    }
+
+    @Override
+    public void execute(String route, Object[] args) {
         List<Command> cmds = COMMAND_SERVICE.getStorage().getCommands();
 
         if (cmds.isEmpty()) {
-            CHAT_SERVICE.sendPersistent(HelpCommand.class.getName(),
-                    CAT_FORMAT.format("No commands registered."));
+            CHAT_SERVICE.sendPersistent(this.getName(), CAT_FORMAT.format("No commands registered."));
             return;
         }
 
-        // TODO: when addon impl, rewrite theese to dynamic
-        String displayText = cmds.stream()
-                .filter(c -> c.getName() != null)
-                .map(this::getDisplay)
-                .collect(Collectors.joining(", "));
+        String displayText = cmds.stream().filter(c -> c.getName() != null).map(this::getDisplay).collect(Collectors.joining(", "));
 
         MutableComponent message = CAT_FORMAT.format("{gray}Available commands: " + displayText + "{white}.");
-        CHAT_SERVICE.sendPersistent(HelpCommand.class.getName(), message);
+        CHAT_SERVICE.sendPersistent(this.getName(), message);
     }
 
     private String getDisplay(Command command) {

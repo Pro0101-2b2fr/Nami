@@ -1,8 +1,8 @@
 package namidevelopment.kiriyaga.nami.impl.command;
 
-import namidevelopment.kiriyaga.api.model.command.Command;
-import namidevelopment.kiriyaga.api.model.command.CommandArgument;
 import namidevelopment.kiriyaga.api.annotation.RegisterCommand;
+import namidevelopment.kiriyaga.api.model.command.Command;
+import namidevelopment.kiriyaga.api.model.command.CommandRoute;
 
 import static namidevelopment.kiriyaga.api.NamiApi.*;
 
@@ -10,18 +10,23 @@ import static namidevelopment.kiriyaga.api.NamiApi.*;
 public class SaveCommand extends Command {
 
     public SaveCommand() {
-        super("save", new CommandArgument[0]);
+        super("save");
     }
 
     @Override
-    public void execute(Object[] args) {
+    public CommandRoute[] getRoutes() {
+        return new CommandRoute[] {
+                new CommandRoute(null)
+        };
+    }
+
+    @Override
+    public void execute(String route, Object[] args) {
         try {
             CONFIG_SERVICE.saveFeatures();
-            CHAT_SERVICE.sendPersistent(SaveCommand.class.getName(),
-                    CAT_FORMAT.format("{gray}Config has been saved."));
+            CHAT_SERVICE.sendPersistent(this.getName(), CAT_FORMAT.format("{gray}Config has been saved."));
         } catch (Exception e) {
-            CHAT_SERVICE.sendPersistent(SaveCommand.class.getName(),
-                    CAT_FORMAT.format("{gray}Config has not been saved: {global}" + e + "{gray}."));
+            CHAT_SERVICE.sendPersistent(this.getName(), CAT_FORMAT.format("{gray}Config has not been saved: {global}" + e + "{gray}."));
         }
     }
 }

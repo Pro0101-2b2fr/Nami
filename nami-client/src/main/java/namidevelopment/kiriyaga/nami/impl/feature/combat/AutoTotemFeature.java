@@ -320,7 +320,6 @@ public class AutoTotemFeature extends Feature {
         return -1;
     }
 
-
     private boolean hasMending(ItemStack stack) {
         return EnchantmentUtils.getEnchantmentLevel(stack, Enchantments.MENDING) > 0;
     }

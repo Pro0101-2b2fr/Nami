@@ -11,7 +11,6 @@ import namidevelopment.kiriyaga.api.model.setting.EnumSetting;
 import namidevelopment.kiriyaga.api.model.setting.IntSetting;
 import namidevelopment.kiriyaga.api.util.EnchantmentUtils;
 import namidevelopment.kiriyaga.api.util.entity.TargetUtils;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -22,7 +21,6 @@ import net.minecraft.world.entity.EquipmentSlot;
 import java.util.*;
 
 import static namidevelopment.kiriyaga.api.NamiApi.INVENTORY_SERVICE;
-import static namidevelopment.kiriyaga.nami.Nami.*;
 import static namidevelopment.kiriyaga.api.NamiApi.*;import static namidevelopment.kiriyaga.api.util.entity.PlayerUtils.isBroken;
 
 @RegisterFeature
@@ -80,13 +78,18 @@ public class AutoArmorFeature extends Feature {
             if (best != null) {
                 if (best.isEmpty()) {
                     if (!current.isEmpty()) {
-                        int invSlot = findEmptySlot();
+                        int invSlot = convertSlot(findEmptySlot());
                         if (invSlot != -1) {
                             swap(slot, invSlot);
                             return;
                         }
                     }
                 } else if (!ItemStack.matches(best, current)) {
+                    if (best == MC.player.containerMenu.getCarried()) {
+                        swapCursor(slot);
+                        return;
+                    }
+
                     int invSlot = findInventorySlot(best);
                     if (invSlot != -1) {
                         swap(slot, invSlot);
@@ -119,11 +122,15 @@ public class AutoArmorFeature extends Feature {
     }
 
     private List<ItemStack> findCandidatesForSlot(EquipmentSlot slot, boolean forceBest) {
-        LocalPlayer player = MC.player;
         List<ItemStack> candidates = new ArrayList<>();
 
+        ItemStack carried = MC.player.containerMenu.getCarried();
+        if (!carried.isEmpty() && isArmorForSlot(carried, slot) && !hasCurse(carried)) {
+            candidates.add(carried);
+        }
+
         for (int i = 0; i < 36; i++) {
-            ItemStack stack = player.getInventory().getItem(i);
+            ItemStack stack = MC.player.getInventory().getItem(i);
             if (stack.isEmpty())
                 continue;
             Item item = stack.getItem();
@@ -227,8 +234,14 @@ public class AutoArmorFeature extends Feature {
     }
 
     private void swap(EquipmentSlot armorSlot, int slot) {
+        if (!MC.player.containerMenu.getCarried().isEmpty()) {
+            INVENTORY_SERVICE.getClickHandler().pickupSlot(convertSlot(findEmptySlot()));
+            return;
+        }
+
         ItemStack equipped = MC.player.getItemBySlot(armorSlot);
-        int realSlot = slot < 9 ? slot + 36 : slot;
+        int realSlot = convertSlot(slot);
+
         int armorSlotIndex = switch (armorSlot) {
             case HEAD -> 5;
             case CHEST -> 6;
@@ -243,6 +256,25 @@ public class AutoArmorFeature extends Feature {
         if (hasEquipped) INVENTORY_SERVICE.getClickHandler().pickupSlot(realSlot);
     }
 
+    private void swapCursor(EquipmentSlot armorSlot) {
+        int armorSlotIndex = switch (armorSlot) {
+            case HEAD -> 5;
+            case CHEST -> 6;
+            case LEGS -> 7;
+            case FEET -> 8;
+            default -> throw new IllegalArgumentException();
+        };
+
+        INVENTORY_SERVICE.getClickHandler().pickupSlot(armorSlotIndex);
+
+        if (!MC.player.containerMenu.getCarried().isEmpty()) {
+            int empty = findEmptySlot();
+            if (empty != -1) {
+                INVENTORY_SERVICE.getClickHandler().pickupSlot(convertSlot(empty));
+            }
+        }
+    }
+
     private boolean shouldEquipMendingRepair(EquipmentSlot slot, ItemStack current) {
         if (current.isEmpty()) return true;
         if (!hasMending(current)) return true;
@@ -251,9 +283,8 @@ public class AutoArmorFeature extends Feature {
     }
 
     private ItemStack findDamagedMendingArmor(EquipmentSlot slot) {
-        LocalPlayer player = MC.player;
         for (int i = 0; i < 36; i++) {
-            ItemStack stack = player.getInventory().getItem(i);
+            ItemStack stack = MC.player.getInventory().getItem(i);
             if (stack.isEmpty()) continue;
             if (!isArmorForSlot(stack, slot)) continue;
             if (!hasMending(stack)) continue;
@@ -299,6 +330,10 @@ public class AutoArmorFeature extends Feature {
             if (ItemStack.matches(MC.player.getInventory().getItem(i), target)) return i;
         }
         return -1;
+    }
+
+    private int convertSlot(int slot) {
+        return slot < 9 ? slot + 36 : slot;
     }
 
     private int getMaterialScore(Item item) {

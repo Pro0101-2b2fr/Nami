@@ -2,6 +2,7 @@ package namidevelopment.kiriyaga.api.core.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.*;
+import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -9,6 +10,7 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 
 import namidevelopment.kiriyaga.api.model.command.Command;
 import namidevelopment.kiriyaga.api.model.command.CommandArgument;
+import namidevelopment.kiriyaga.api.model.command.CommandRoute;
 import namidevelopment.kiriyaga.api.model.command.CommandSource;
 
 import namidevelopment.kiriyaga.api.util.KeyUtils;
@@ -23,48 +25,61 @@ import static namidevelopment.kiriyaga.api.NamiApi.*;
 public class BrigadierCommandAdapter {
 
     public static void register(CommandDispatcher<CommandSource> dispatcher, Command cmd) {
-
         String literalName = normalize(cmd.getName());
-
         LiteralArgumentBuilder<CommandSource> root = LiteralArgumentBuilder.literal(literalName);
-
-        CommandArgument[] args = cmd.getArguments();
-
-        if (args.length == 0) {
-            root.executes(ctx -> execute(cmd, ctx));
+        CommandRoute[] routes = cmd.getRoutes();
+        if (routes == null || routes.length == 0) {
             dispatcher.register(root);
             return;
         }
 
-        var chain = buildArgumentChain(cmd, args, 0);
+        for (CommandRoute route : routes) {
+            root.then(buildRoute(cmd, route));
+        }
 
-        root.then(chain);
         dispatcher.register(root);
     }
 
-    private static com.mojang.brigadier.builder.ArgumentBuilder<CommandSource, ?>
-    buildArgumentChain(Command cmd, CommandArgument[] args, int index) {
+    private static ArgumentBuilder<CommandSource, ?> buildRoute(Command cmd, CommandRoute route) {
+        String literal = route.getLiteral();
+        CommandArgument[] args = route.getArguments();
+        if (literal == null || literal.isBlank()) {
+            if (args.length == 0) {
+                return LiteralArgumentBuilder.<CommandSource>literal(cmd.getName())
+                        .executes(ctx -> execute(cmd, route, ctx));
+            }
+            return buildArgumentChain(cmd, route, args, 0);
+        }
+        var lit = LiteralArgumentBuilder.<CommandSource>literal(literal);
+
+        if (args.length == 0) {
+            lit.executes(ctx -> execute(cmd, route, ctx));
+        } else {
+            lit.then(buildArgumentChain(cmd, route, args, 0));
+        }
+
+        return lit;
+    }
+
+    private static ArgumentBuilder<CommandSource, ?> buildArgumentChain(Command cmd, CommandRoute route, CommandArgument[] args, int index) {
 
         CommandArgument arg = args[index];
         boolean isLast = index == args.length - 1;
 
-        RequiredArgumentBuilder<CommandSource, ?> builder =
-                RequiredArgumentBuilder.argument(arg.getName(), toBrigadierType(arg, isLast));
-
+        RequiredArgumentBuilder<CommandSource, ?> builder = RequiredArgumentBuilder.argument(arg.getName(), toBrigadierType(arg, isLast));
         applySuggestions(builder, arg);
 
         if (isLast) {
-            builder.executes(ctx -> execute(cmd, ctx));
+            builder.executes(ctx -> execute(cmd, route, ctx));
         } else {
-            builder.then(buildArgumentChain(cmd, args, index + 1));
+            builder.then(buildArgumentChain(cmd, route, args, index + 1));
         }
-
         return builder;
     }
 
-    private static int execute(Command cmd, CommandContext<CommandSource> ctx) {
+    private static int execute(Command cmd, CommandRoute route, CommandContext<CommandSource> ctx) {
         try {
-            CommandArgument[] expected = cmd.getArguments();
+            CommandArgument[] expected = route.getArguments();
             Object[] parsed = new Object[expected.length];
 
             for (int i = 0; i < expected.length; i++) {
@@ -78,14 +93,15 @@ public class BrigadierCommandAdapter {
                 parsed[i] = readArg(ctx, arg);
             }
 
-            cmd.execute(parsed);
+            cmd.execute(route.getLiteral(), parsed);
             return 1;
 
         } catch (Exception e) {
-            LOGGER.error("Error executing command: " + cmd.getName(), e);
+            LOGGER.error("Error executing command: " + cmd.getName(), e.getMessage());
             return 0;
         }
     }
+
 
     private static Object readArg(CommandContext<CommandSource> ctx, CommandArgument arg) {
         String name = arg.getName();

@@ -7,6 +7,7 @@ import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import namidevelopment.kiriyaga.api.annotation.RegisterCommand;
 import namidevelopment.kiriyaga.api.model.command.Command;
 import namidevelopment.kiriyaga.api.model.command.CommandArgument;
+import namidevelopment.kiriyaga.api.model.command.CommandRoute;
 import namidevelopment.kiriyaga.api.model.command.CommandSource;
 import namidevelopment.kiriyaga.api.model.feature.Feature;
 import namidevelopment.kiriyaga.api.model.setting.*;
@@ -21,7 +22,17 @@ import static namidevelopment.kiriyaga.api.NamiApi.*;
 public class FeatureCommand extends Command {
 
     public FeatureCommand() {
-        super("feature", new CommandArgument[0]);
+        super("feature");
+    }
+
+    @Override
+    public CommandRoute[] getRoutes() {
+        return null;
+    }
+
+    @Override
+    public void execute(String s, Object[] objects) {
+
     }
 
     @Override
@@ -31,8 +42,7 @@ public class FeatureCommand extends Command {
 
         root.then(RequiredArgumentBuilder.<CommandSource, String>argument("feature", word())
                         .suggests((ctx, sb) -> {
-                            FEATURE_SERVICE.getStorage().getAll()
-                                    .forEach(f -> sb.suggest(f.getName().replace(" ", "")));
+                            FEATURE_SERVICE.getStorage().getAll().forEach(f -> sb.suggest(f.getName().replace(" ", "")));
                             return sb.buildFuture();
                         })
                         .executes(ctx -> {
@@ -40,14 +50,11 @@ public class FeatureCommand extends Command {
                             Feature feature = FEATURE_SERVICE.getStorage().getByName(name);
 
                             if (feature == null) {
-                                CHAT_SERVICE.sendPersistent("Feature",
-                                        CAT_FORMAT.format("{red}Feature not found: {gray}" + name));
+                                CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{red}Feature not found: {gray}" + name));
                                 return 0;
                             }
 
-                            CHAT_SERVICE.sendPersistent("Feature",
-                                    CAT_FORMAT.format("{global}" + feature.getName()
-                                            + " {gray}[" + (feature.isEnabled() ? "{green}ON" : "{red}OFF") + "{gray}]"));
+                            CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{global}" + feature.getName() + " {gray}[" + (feature.isEnabled() ? "{green}ON" : "{red}OFF") + "{gray}]"));
 
                             return 1;
                         })
@@ -98,23 +105,19 @@ public class FeatureCommand extends Command {
                                             Setting<?> bind = feature.getSettingByName("Bind");
 
                                             if (!(bind instanceof KeyBindSetting keyBindSetting)) {
-                                                CHAT_SERVICE.sendPersistent("Feature",
-                                                        CAT_FORMAT.format("{red}This feature has no bind setting."));
+                                                CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{red}This feature has no bind setting."));
                                                 return 0;
                                             }
 
                                             int code = namidevelopment.kiriyaga.api.util.KeyUtils.parseKey(keyName.toUpperCase());
                                             if (code == -1) {
-                                                CHAT_SERVICE.sendPersistent("Feature",
-                                                        CAT_FORMAT.format("{red}Invalid key: {gray}" + keyName));
+                                                CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{red}Invalid key: {gray}" + keyName));
                                                 return 0;
                                             }
 
                                             keyBindSetting.set(code);
 
-                                            CHAT_SERVICE.sendPersistent("Feature",
-                                                    CAT_FORMAT.format("{gray}Bound {global}" + feature.getName()
-                                                            + " {gray}to {global}" + keyName));
+                                            CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{gray}Bound {global}" + feature.getName() + " {gray}to {global}" + keyName));
                                             return 1;
                                         })
                                 )
@@ -141,23 +144,18 @@ public class FeatureCommand extends Command {
                                                     Setting<?> setting = feature.getSettingByName(settingName);
 
                                                     if (setting == null) {
-                                                        CHAT_SERVICE.sendPersistent("Feature",
-                                                                CAT_FORMAT.format("{red}Setting not found: {global}" + settingName));
+                                                        CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{red}Setting not found: {global}" + settingName));
                                                         return 0;
                                                     }
 
                                                     boolean ok = applySetting(setting, value);
 
                                                     if (!ok) {
-                                                        CHAT_SERVICE.sendPersistent("Feature",
-                                                                CAT_FORMAT.format("{red}Invalid value for {global}" + setting.getName()));
+                                                        CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{red}Invalid value for {global}" + setting.getName()));
                                                         return 0;
                                                     }
 
-                                                    CHAT_SERVICE.sendPersistent(setting.getName(),
-                                                            CAT_FORMAT.format("{gray}Setting {global}" + setting.getName()
-                                                                    + "{gray} for {global}" + feature.getName()
-                                                                    + "{gray} set to {global}" + value));
+                                                    CHAT_SERVICE.sendPersistent(setting.getName(), CAT_FORMAT.format("{gray}Setting {global}" + setting.getName() + "{gray} for {global}" + feature.getName() + "{gray} set to {global}" + value));
                                                     return 1;
                                                 })
                                         )
@@ -183,23 +181,18 @@ public class FeatureCommand extends Command {
                                             Setting<?> setting = feature.getSettingByName(settingName);
 
                                             if (setting == null) {
-                                                CHAT_SERVICE.sendPersistent("Feature",
-                                                        CAT_FORMAT.format("{red}Setting not found: {global}" + settingName));
+                                                CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{red}Setting not found: {global}" + settingName));
                                                 return 0;
                                             }
 
                                             boolean ok = applySetting(setting, value);
 
                                             if (!ok) {
-                                                CHAT_SERVICE.sendPersistent("Feature",
-                                                        CAT_FORMAT.format("{red}Invalid value for {global}" + setting.getName()));
+                                                CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{red}Invalid value for {global}" + setting.getName()));
                                                 return 0;
                                             }
 
-                                            CHAT_SERVICE.sendPersistent(setting.getName(),
-                                                    CAT_FORMAT.format("{gray}Setting {global}" + setting.getName()
-                                                            + "{gray} for {global}" + feature.getName()
-                                                            + "{gray} set to {global}" + value));
+                                            CHAT_SERVICE.sendPersistent(setting.getName(), CAT_FORMAT.format("{gray}Setting {global}" + setting.getName() + "{gray} for {global}" + feature.getName() + "{gray} set to {global}" + value));
                                             return 1;
                                         })
                                 )
@@ -212,15 +205,11 @@ public class FeatureCommand extends Command {
 
                                     Setting<?> setting = feature.getSettingByName("Whitelist");
                                     if (!(setting instanceof WhitelistSetting wl)) {
-                                        CHAT_SERVICE.sendPersistent("Feature",
-                                                CAT_FORMAT.format("{red}Feature has no whitelist setting."));
+                                        CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{red}Feature has no whitelist setting."));
                                         return 0;
                                     }
 
-                                    CHAT_SERVICE.sendPersistent("Feature",
-                                            CAT_FORMAT.format("{gray}Whitelist is "
-                                                    + (wl.get() ? "{green}enabled" : "{red}disabled")
-                                                    + "{gray}. Items: {global}" + wl.getWhitelist().size()));
+                                    CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{gray}Whitelist is " + (wl.get() ? "{green}enabled" : "{red}disabled") + "{gray}. Items: {global}" + wl.getWhitelist().size()));
 
                                     return 1;
                                 })
@@ -232,14 +221,12 @@ public class FeatureCommand extends Command {
 
                                             Setting<?> setting = feature.getSettingByName("Whitelist");
                                             if (!(setting instanceof WhitelistSetting wl)) {
-                                                CHAT_SERVICE.sendPersistent("Feature",
-                                                        CAT_FORMAT.format("{red}Feature has no whitelist setting."));
+                                                CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{red}Feature has no whitelist setting."));
                                                 return 0;
                                             }
 
                                             wl.set(true);
-                                            CHAT_SERVICE.sendPersistent("Feature",
-                                                    CAT_FORMAT.format("{gray}Whitelist enabled."));
+                                            CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{gray}Whitelist enabled."));
                                             return 1;
                                         })
                                 )
@@ -251,14 +238,12 @@ public class FeatureCommand extends Command {
 
                                             Setting<?> setting = feature.getSettingByName("Whitelist");
                                             if (!(setting instanceof WhitelistSetting wl)) {
-                                                CHAT_SERVICE.sendPersistent("Feature",
-                                                        CAT_FORMAT.format("{red}Feature has no whitelist setting."));
+                                                CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{red}Feature has no whitelist setting."));
                                                 return 0;
                                             }
 
                                             wl.set(false);
-                                            CHAT_SERVICE.sendPersistent("Feature",
-                                                    CAT_FORMAT.format("{gray}Whitelist disabled."));
+                                            CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{gray}Whitelist disabled."));
                                             return 1;
                                         })
                                 )
@@ -270,14 +255,12 @@ public class FeatureCommand extends Command {
 
                                             Setting<?> setting = feature.getSettingByName("Whitelist");
                                             if (!(setting instanceof WhitelistSetting wl)) {
-                                                CHAT_SERVICE.sendPersistent("Feature",
-                                                        CAT_FORMAT.format("{red}Feature has no whitelist setting."));
+                                                CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{red}Feature has no whitelist setting."));
                                                 return 0;
                                             }
 
                                             wl.toggle();
-                                            CHAT_SERVICE.sendPersistent("Feature",
-                                                    CAT_FORMAT.format("{gray}Whitelist toggled: "
+                                            CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{gray}Whitelist toggled: "
                                                             + (wl.get() ? "{green}ON" : "{red}OFF")));
                                             return 1;
                                         })
@@ -319,19 +302,16 @@ public class FeatureCommand extends Command {
 
                                                     Setting<?> setting = feature.getSettingByName("Whitelist");
                                                     if (!(setting instanceof WhitelistSetting wl)) {
-                                                        CHAT_SERVICE.sendPersistent("Feature",
-                                                                CAT_FORMAT.format("{red}Feature has no whitelist setting."));
+                                                        CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{red}Feature has no whitelist setting."));
                                                         return 0;
                                                     }
 
                                                     if (!wl.addToWhitelist(id)) {
-                                                        CHAT_SERVICE.sendPersistent("Feature",
-                                                                CAT_FORMAT.format("{red}Invalid identifier: {gray}" + id));
+                                                        CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{red}Invalid identifier: {gray}" + id));
                                                         return 0;
                                                     }
 
-                                                    CHAT_SERVICE.sendPersistent("Feature",
-                                                            CAT_FORMAT.format("{gray}Added {global}" + id + "{gray} to whitelist."));
+                                                    CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{gray}Added {global}" + id + "{gray} to whitelist."));
                                                     return 1;
                                                 })
                                         )
@@ -360,19 +340,16 @@ public class FeatureCommand extends Command {
 
                                                     Setting<?> setting = feature.getSettingByName("Whitelist");
                                                     if (!(setting instanceof WhitelistSetting wl)) {
-                                                        CHAT_SERVICE.sendPersistent("Feature",
-                                                                CAT_FORMAT.format("{red}Feature has no whitelist setting."));
+                                                        CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{red}Feature has no whitelist setting."));
                                                         return 0;
                                                     }
 
                                                     if (!wl.removeFromWhitelist(id)) {
-                                                        CHAT_SERVICE.sendPersistent("Feature",
-                                                                CAT_FORMAT.format("{red}Not in whitelist: {gray}" + id));
+                                                        CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{red}Not in whitelist: {gray}" + id));
                                                         return 0;
                                                     }
 
-                                                    CHAT_SERVICE.sendPersistent("Feature",
-                                                            CAT_FORMAT.format("{gray}Removed {global}" + id + "{gray} from whitelist."));
+                                                    CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{gray}Removed {global}" + id + "{gray} from whitelist."));
                                                     return 1;
                                                 })
                                         )
@@ -385,15 +362,13 @@ public class FeatureCommand extends Command {
 
                                             Setting<?> setting = feature.getSettingByName("Whitelist");
                                             if (!(setting instanceof WhitelistSetting wl)) {
-                                                CHAT_SERVICE.sendPersistent("Feature",
-                                                        CAT_FORMAT.format("{red}Feature has no whitelist setting."));
+                                                CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{red}Feature has no whitelist setting."));
                                                 return 0;
                                             }
 
                                             wl.getWhitelist().clear();
 
-                                            CHAT_SERVICE.sendPersistent("Feature",
-                                                    CAT_FORMAT.format("{gray}Whitelist cleared."));
+                                            CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{gray}Whitelist cleared."));
                                             return 1;
                                         })
                                 )
@@ -405,14 +380,12 @@ public class FeatureCommand extends Command {
 
                                             Setting<?> setting = feature.getSettingByName("Whitelist");
                                             if (!(setting instanceof WhitelistSetting wl)) {
-                                                CHAT_SERVICE.sendPersistent("Feature",
-                                                        CAT_FORMAT.format("{red}Feature has no whitelist setting."));
+                                                CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{red}Feature has no whitelist setting."));
                                                 return 0;
                                             }
 
                                             if (wl.getWhitelist().isEmpty()) {
-                                                CHAT_SERVICE.sendPersistent("Feature",
-                                                        CAT_FORMAT.format("{gray}Whitelist is empty."));
+                                                CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{gray}Whitelist is empty."));
                                                 return 1;
                                             }
 
@@ -422,8 +395,7 @@ public class FeatureCommand extends Command {
                                                 sb.append("{global}").append(id.toString());
                                             }
 
-                                            CHAT_SERVICE.sendPersistent("Feature",
-                                                    CAT_FORMAT.format("{gray}Whitelist: " + sb));
+                                            CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{gray}Whitelist: " + sb));
                                             return 1;
                                         })
                                 )
@@ -438,8 +410,7 @@ public class FeatureCommand extends Command {
         Feature feature = FEATURE_SERVICE.getStorage().getByName(name);
 
         if (feature == null) {
-            CHAT_SERVICE.sendPersistent("Feature",
-                    CAT_FORMAT.format("{red}Feature not found: {gray}" + name));
+            CHAT_SERVICE.sendPersistent("Feature", CAT_FORMAT.format("{red}Feature not found: {gray}" + name));
             return null;
         }
 
@@ -510,7 +481,4 @@ public class FeatureCommand extends Command {
 
         return false;
     }
-
-    @Override
-    public void execute(Object[] args) {  }
 }

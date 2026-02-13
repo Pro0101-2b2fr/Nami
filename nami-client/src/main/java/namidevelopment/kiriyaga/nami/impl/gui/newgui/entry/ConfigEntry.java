@@ -16,9 +16,9 @@ public class ConfigEntry extends BaseEntry {
         this.meta = meta;
 
         if (meta == null) {
-            this.displayText = CAT_FORMAT.format("Name: {global}"+name + " {white}Saved: {global}unknown" + "{white}Author: {global}unknown" + "{white}Version: {global}unknown");
+            this.displayText = CAT_FORMAT.format("{gray}Name: {global}"+name + " {gray}Saved: {global}unknown" + "{gray}Author: {global}unknown" + "{gray}Version: {global}unknown");
         } else {
-            this.displayText = CAT_FORMAT.format("Name: {global}"+name + " {white}Saved: {global}" + meta.mode().name() +" {white}Author: {global}" + meta.author() + " {white}Version: {global}" + meta.clientVersion());
+            this.displayText = CAT_FORMAT.format("{gray}Name: {global}"+name + " {gray}Saved: {global}" + meta.mode().name() +" {gray}Author: {global}" + meta.author() + " {gray}Version: {global}" + meta.clientVersion());
         }
     }
 

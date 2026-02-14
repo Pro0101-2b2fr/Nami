@@ -25,12 +25,12 @@ public class UptimeFeature extends HudElementFeature {
         String formatted;
 
         if (displayLabel.get()) {
-            formatted = String.format("{global}Uptime({white}%02d{global}:{white}%02d{global})", hours, minutes);
+            formatted = String.format("{global}Uptime{secondary}({white}%02d{secondary}:{white}%02d{secondary})", hours, minutes);
         } else {
-            formatted = String.format("{global}({white}%02d{global}:{white}%02d{global})", hours, minutes);
+            formatted = String.format("{secondary}({white}%02d{secondary}:{white}%02d{secondary})", hours, minutes);
         }
 
-        width = FONT_SERVICE.getWidth(formatted.replace("{global}", "").replace("{white}", ""));
+        width = FONT_SERVICE.getWidth(formatted.replace("{global}", "").replace("{white}", "").replace("{secondary}", ""));
         height = FONT_SERVICE.getHeight();
         return CAT_FORMAT.format(formatted);
     }

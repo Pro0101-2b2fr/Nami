@@ -8,6 +8,7 @@ package namidevelopment.kiriyaga.api.util.render;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.gizmos.GizmoStyle;
 import net.minecraft.util.ARGB;
 import net.minecraft.world.level.block.state.BlockState;
@@ -61,6 +62,10 @@ public class RenderUtil {
         Layers.getGlobalQuads().draw(bufferBuilder.buildOrThrow());
     }
 
+    // Author: crosby.moe
+    public static void fade(GuiGraphics context, int x1, int y1, int x2, int y2, int c1, int c2, int c3, int c4) {
+        context.guiRenderState.submitGlyphToCurrentLayer(new namidevelopment.kiriyaga.api.util.render.RectangleRenderState(new org.joml.Matrix3x2f(context.pose()), x1, y1, x2, y2, c1, c2, c3, c4, context.scissorStack.peek()));
+    }
 
     // 3d
     //   net.minecraft.client.render.debug.ChunkBorderDebugRenderer

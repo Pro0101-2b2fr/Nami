@@ -73,7 +73,7 @@ public class SearchListFeature extends HudElementFeature {
 
         for (String name : sortedNames) {
             int count = blockCounts.get(name);
-            Component text = CAT_FORMAT.format("{global}" + name + (count > 1 ? " {white}(x" + count + ")" : ""));
+            Component text = CAT_FORMAT.format("{global}" + name + (count > 1 ? " {secondary}(x" + count + ")" : ""));
             int textWidth = FONT_SERVICE.getWidth(text);
             elements.add(new TextElement(text, 0, yOffset));
 
@@ -88,7 +88,7 @@ public class SearchListFeature extends HudElementFeature {
     }
 
     private int getTextWidth(String name, int count) {
-        Component text = CAT_FORMAT.format("{global}" + name + (count > 1 ? " {white}(x" + count + ")" : ""));
+        Component text = CAT_FORMAT.format("{global}" + name + (count > 1 ? " {secondary}(x" + count + ")" : ""));
         return FONT_SERVICE.getWidth(text);
     }
 }

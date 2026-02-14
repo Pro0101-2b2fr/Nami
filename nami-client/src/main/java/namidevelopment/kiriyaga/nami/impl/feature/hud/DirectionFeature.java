@@ -31,13 +31,14 @@ public class DirectionFeature extends HudElementFeature {
         }
 
         if (precise.get())
-        dirText = String.format(Locale.US, "%.3f {global}[{white}%.3f{global}]", yaw, pitch); // locale is wild
+        dirText = String.format(Locale.US, "%.3f {secondary}[{white}%.3f{secondary}]", yaw, pitch); // locale is wild
         else
-            dirText = String.format(Locale.US, "%.0f {global}[{white}%.0f{global}]", yaw, pitch); // locale is wild
+            dirText = String.format(Locale.US, "%.0f {secondary}[{white}%.0f{secondary}]", yaw, pitch); // locale is wild
 
         String text = displayLabel.get() ? "{global}Direction: {white}" + dirText : "{white}" + dirText;
 
-        width = FONT_SERVICE.getWidth(text.replace("{global}", "").replace("{white}", ""));
+
+        width = FONT_SERVICE.getWidth(text.replace("{global}", "").replace("{white}", "").replace("{secondary}", ""));
         height = FONT_SERVICE.getHeight();
 
         return CAT_FORMAT.format(text);

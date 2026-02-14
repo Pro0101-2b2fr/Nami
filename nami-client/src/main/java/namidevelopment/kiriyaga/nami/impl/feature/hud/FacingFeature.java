@@ -49,7 +49,7 @@ public class FacingFeature extends HudElementFeature {
         if (absDx > 0.2 && absDz > 0.2 && Math.abs(absDx - absDz) < 0.4) {
             String axisX = dx > 0 ? "+X" : "-X";
             String axisZ = dz > 0 ? "+Z" : "-Z";
-            axisPart = formatAxis(axisX) + "{global}, {global} " + formatAxis(axisZ);
+            axisPart = formatAxis(axisX) + "{secondary}, {global} " + formatAxis(axisZ);
         } else {
             if (absDz > absDx) {
                 String axis = dz > 0 ? "+Z" : "-Z";
@@ -60,9 +60,9 @@ public class FacingFeature extends HudElementFeature {
             }
         }
 
-        String labelPart = displayLabel.get() ? "{global}" + dir + " {global}[" + axisPart + "{global}]" : axisPart;
+        String labelPart = displayLabel.get() ? "{global}" + dir + " {secondary}[" + axisPart + "{secondary}]" : axisPart;
 
-        width = FONT_SERVICE.getWidth(labelPart.replace("{global}", "").replace("{white}", "").replace("{gray}", ""));
+        width = FONT_SERVICE.getWidth(labelPart.replace("{global}", "").replace("{white}", "").replace("{secondary}", ""));
         height = FONT_SERVICE.getHeight();
 
         return CAT_FORMAT.format(labelPart);

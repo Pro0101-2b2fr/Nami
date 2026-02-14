@@ -66,7 +66,7 @@ public class FeatureListFeature extends HudElementFeature {
 
                 if (displayInfos != null && !displayInfos.isEmpty()) {
                     StringBuilder sb = new StringBuilder();
-                    sb.append(Feature.getName()).append(" [");
+                    sb.append(Feature.getName()).append(" {secondary}[");
 
                     for (int i = 0; i < displayInfos.size(); i++) {
                         Component info = displayInfos.get(i);
@@ -75,10 +75,10 @@ public class FeatureListFeature extends HudElementFeature {
                         sb.append("{white}").append(info.getString());
 
                         if (i < displayInfos.size() - 1) {
-                            sb.append("{global},");
+                            sb.append("{secondary},");
                         }
                     }
-                    sb.append("{global}]");
+                    sb.append("{secondary}]");
                     rawText = sb.toString();
 
                 } else {
@@ -120,7 +120,7 @@ public class FeatureListFeature extends HudElementFeature {
                 StringBuilder rawSb = new StringBuilder();
                 rawSb.append(Feature.getName()).append(" [");
                 StringBuilder formattedSb = new StringBuilder();
-                formattedSb.append("{global}").append(Feature.getName()).append(" {global}[");
+                formattedSb.append("{global}").append(Feature.getName()).append(" {secondary}[");
 
                 for (int i = 0; i < displayInfos.size(); i++) {
                     Component info = displayInfos.get(i);
@@ -131,12 +131,12 @@ public class FeatureListFeature extends HudElementFeature {
 
                     if (i < displayInfos.size() - 1) {
                         rawSb.append(",");
-                        formattedSb.append("{global},");
+                        formattedSb.append("{secondary},");
                     }
                 }
 
                 rawSb.append("]");
-                formattedSb.append("{global}]");
+                formattedSb.append("{secondary}]");
 
                 rawText = rawSb.toString();
                 formattedTextStr = formattedSb.toString();

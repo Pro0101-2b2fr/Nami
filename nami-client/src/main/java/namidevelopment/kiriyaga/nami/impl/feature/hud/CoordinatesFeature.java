@@ -53,12 +53,12 @@ public class CoordinatesFeature extends HudElementFeature {
             formatted += "{global}XYZ: ";
         }
 
-        formatted += "{white}" + formatNumber(x) + "{global}, {white}"
-                + formatNumber(y) + "{global}, {white}"
+        formatted += "{white}" + formatNumber(x) + "{secondary}, {white}"
+                + formatNumber(y) + "{secondary}, {white}"
                 + formatNumber(z);
 
         if ((isOverworld || isNether) && altCords.get()) {
-            formatted += " {global}[{white}" + formatNumber(xAlt) + "{global}, {white}" + formatNumber(zAlt) + "{global}]";
+            formatted += " {secondary}[{white}" + formatNumber(xAlt) + "{secondary}, {white}" + formatNumber(zAlt) + "{secondary}]";
         }
 
         width = FONT_SERVICE.getWidth(formatted.replaceAll("\\{.*?}", ""));
@@ -95,7 +95,7 @@ public class CoordinatesFeature extends HudElementFeature {
 
         String fx = "{global}X: {white}" + formatNumber(x);
         if ((isOverworld || isNether) && altCords.get()) {
-            fx += " {global}[{white}" + formatNumber(xAlt) + "{global}]";
+            fx += " {secondary}[{white}" + formatNumber(xAlt) + "{secondary}]";
         }
 
         lines.add(new TextElement(CAT_FORMAT.format(fx), 0, offsetY));
@@ -106,7 +106,7 @@ public class CoordinatesFeature extends HudElementFeature {
 
         String fz = "{global}Z: {white}" + formatNumber(z);
         if ((isOverworld || isNether) && altCords.get()) {
-            fz += " {global}[{white}" + formatNumber(zAlt) + "{global}]";
+            fz += " {secondary}[{white}" + formatNumber(zAlt) + "{secondary}]";
         }
 
         lines.add(new TextElement(CAT_FORMAT.format(fz), 0, offsetY));

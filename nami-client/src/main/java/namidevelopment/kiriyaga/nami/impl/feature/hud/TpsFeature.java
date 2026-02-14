@@ -23,10 +23,10 @@ public class TpsFeature extends HudElementFeature {
     public Component getDisplayText() {
         float avgTps = SERVER_SERVICE.getAverageTPS();
         float latestTps = SERVER_SERVICE.getLatestTPS();
-        String tpsText = String.format(Locale.US, "%.2f {global}[{white}%.2f{global}]", avgTps, latestTps); // locale is wild
+        String tpsText = String.format(Locale.US, "%.2f {secondary}[{white}%.2f{secondary}]", avgTps, latestTps); // locale is wild
         String text = displayLabel.get() ? "{global}TPS: {white}" + tpsText : "{white}" + tpsText;
 
-        width = FONT_SERVICE.getWidth(text.replace("{global}", "").replace("{white}", ""));
+        width = FONT_SERVICE.getWidth(text.replace("{global}", "").replace("{white}", "").replace("{secondary}", ""));
         height = FONT_SERVICE.getHeight();
 
         return CAT_FORMAT.format(text);

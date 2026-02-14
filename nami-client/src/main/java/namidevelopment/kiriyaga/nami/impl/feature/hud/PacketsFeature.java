@@ -92,7 +92,7 @@ public class PacketsFeature extends HudElementFeature {
             text += "{global}Packets ";
         }
 
-        text += "{global}({white}S:" + swaps + "{global}, {white}G:" + global + "{global}, {white}A:" + action + "{global}, {white}I:" + interact + "{global}, {white}B:" + block + "{global})";
+        text += "{secondary}({white}S:" + swaps + "{secondary}, {white}G:" + global + "{secondary}, {white}A:" + action + "{secondary}, {white}I:" + interact + "{secondary}, {white}B:" + block + "{secondary})";
         width = FONT_SERVICE.getWidth(text.replaceAll("\\{.*?}", ""));
         height = FONT_SERVICE.getHeight();
 

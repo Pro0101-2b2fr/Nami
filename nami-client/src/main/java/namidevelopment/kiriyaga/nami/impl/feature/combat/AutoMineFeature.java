@@ -285,10 +285,10 @@ public class AutoMineFeature extends Feature {
 
         BlockState state = MC.level.getBlockState(pos);
 
-        if (state.getBlock() == Blocks.OBSIDIAN
-                || state.getBlock() == Blocks.CRYING_OBSIDIAN
-                || state.getBlock() == Blocks.ENDER_CHEST
-                || state.getBlock() == Blocks.NETHERITE_BLOCK) {
+        if (!isPhased(TargetUtils.getTarget()) && isPlaceable(pos))
+            return false;
+
+        if (state.getBlock().getExplosionResistance() >= 600.0f && state.getBlock() != Blocks.BEDROCK) {
             return true;
         }
 

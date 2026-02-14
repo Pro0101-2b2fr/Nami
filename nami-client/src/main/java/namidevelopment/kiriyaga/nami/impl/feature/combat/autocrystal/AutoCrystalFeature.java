@@ -145,8 +145,6 @@ public class AutoCrystalFeature extends Feature {
         placeIgnoreCrystals.setShowCondition(() -> doPlace.get() && page.get() == Page.PLACE);
         placeStrictDirection.setShowCondition(() -> doPlace.get() && page.get() == Page.PLACE);
         placeIgnoreTerrain.setShowCondition(() -> doPlace.get() && page.get() == Page.PLACE);
-        antiFeetTrap.setShowCondition(() -> doPlace.get() && page.get() == Page.PLACE);
-        antiFeetTrapFactor.setShowCondition(() -> doPlace.get() && page.get() == Page.PLACE && antiFeetTrap.get());
 
         noSelfPop.setShowCondition(() ->  page.get() == Page.DAMAGES);
         minDamage.setShowCondition(() -> page.get() == Page.DAMAGES);
@@ -155,6 +153,8 @@ public class AutoCrystalFeature extends Feature {
         balance.setShowCondition(() -> page.get() == Page.DAMAGES);
         healthBalance.setShowCondition(() -> page.get() == Page.DAMAGES);
         armorBalance.setShowCondition(() -> page.get() == Page.DAMAGES);
+        antiFeetTrap.setShowCondition(() -> doPlace.get() && page.get() == Page.DAMAGES);
+        antiFeetTrapFactor.setShowCondition(() -> doPlace.get() && page.get() == Page.DAMAGES && antiFeetTrap.get());
 
         render.setShowCondition(() -> page.get() == Page.RENDER);
     }

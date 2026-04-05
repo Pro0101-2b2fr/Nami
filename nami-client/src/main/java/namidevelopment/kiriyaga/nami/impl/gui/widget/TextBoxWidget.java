@@ -10,7 +10,8 @@ import org.lwjgl.glfw.GLFW;
 import java.awt.*;
 
 import static namidevelopment.kiriyaga.nami.Nami.*;
-import static namidevelopment.kiriyaga.api.NamiApi.*;import static namidevelopment.kiriyaga.api.util.ColorUtils.toRGBA;
+import static namidevelopment.kiriyaga.api.NamiApi.*;
+import static namidevelopment.kiriyaga.api.util.ColorUtils.toRGBA;
 
 public class TextBoxWidget {
     private final PanelRenderer panelRenderer = new PanelRenderer();

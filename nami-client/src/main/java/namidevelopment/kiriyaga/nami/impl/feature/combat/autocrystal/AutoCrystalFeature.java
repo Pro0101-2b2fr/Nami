@@ -607,7 +607,7 @@ public class AutoCrystalFeature extends Feature {
 
             double maxImpact = (1.0 - (dist / 12.0));
             float maxBaseDamage = (float)((maxImpact * maxImpact + maxImpact) / 2.0 * 7.0 * 12.0 + 1.0);
-            float maxDmg = applyReductionsForSnapshot(maxBaseDamage, t, snap);
+            float maxDmg = DamageUtils.applyReductions(maxBaseDamage, t.armor(), t.toughness(), t.resistanceAmp(), t.prot(), t.blastProt(), t.armorMask(), snap.difficulty(), snap.assumeBestArmor(), snap.scalesWithDifficulty());
 
             if (t.id() == snap.selfId()) {
                 if (maxDmg <= maxSelfDamage.get() && (!noSelfPop.get() || maxDmg + 1.5f < t.health() + t.absorption())) {
@@ -624,14 +624,19 @@ public class AutoCrystalFeature extends Feature {
                 }
             }
 
-            double exposure = calculateExposureForSnapshot(explosionPos, t.box(), snap);
+            double exposure = DamageUtils.calculateExposure(explosionPos, t.box(), (ctx, pos) -> {
+                if (snap.ignoredBlocks() != null && snap.ignoredBlocks().contains(pos)) return null;
+                BlockState state = getBlockFast(snap.level(), pos);
+                if (state.isAir() || !state.isSolid()) return null;
+                return state.getCollisionShape(snap.level(), pos).clip(ctx.start(), ctx.end(), pos);
+            });
             if (exposure <= 0.0) continue;
 
             double impact = (1.0 - (dist / 12.0)) * exposure;
             if (impact <= 0.0) continue;
 
             float baseDamage = (float)((impact * impact + impact) / 2.0 * 7.0 * 12.0 + 1.0);
-            float dmg = applyReductionsForSnapshot(baseDamage, t, snap);
+            float dmg = DamageUtils.applyReductions(baseDamage, t.armor(), t.toughness(), t.resistanceAmp(), t.prot(), t.blastProt(), t.armorMask(), snap.difficulty(), snap.assumeBestArmor(), snap.scalesWithDifficulty());
 
             if (t.id() == snap.selfId()) {
                 if (dmg > maxSelfDamage.get()) {
@@ -660,89 +665,7 @@ public class AutoCrystalFeature extends Feature {
         return any ? total : -1.0f;
     }
 
-    private float applyReductionsForSnapshot(float damage, AutoCrystalSnapshot.TargetData t, AutoCrystalSnapshot snap) {
-        if (snap.scalesWithDifficulty()) {
-            switch (snap.difficulty()) {
-                case EASY -> damage = Math.min(damage / 2f + 1f, damage);
-                case HARD -> damage *= 1.5f;
-            }
-        }
 
-        damage = getDamageAfterAbsorbForSnapshot(damage, t.armor(), t.toughness());
-        if (t.resistanceAmp() >= 0) {
-            damage *= 1.0f - 0.2f * (t.resistanceAmp() + 1);
-        }
-        damage = reduceByProtectionForSnapshot(damage, t, snap.assumeBestArmor());
-        return Math.max(damage, 0.0f);
-    }
-
-    private float reduceByProtectionForSnapshot(float damage, AutoCrystalSnapshot.TargetData t, boolean assumeBestArmor) {
-        int totalProtection = 0;
-        if (assumeBestArmor) {
-            if ((t.armorMask() & 1) != 0) totalProtection += 4;
-            if ((t.armorMask() & 2) != 0) totalProtection += 4;
-            if ((t.armorMask() & 8) != 0) totalProtection += 4;
-            if ((t.armorMask() & 4) != 0) totalProtection += 8;
-        } else {
-            totalProtection += t.prot();
-            totalProtection += 2 * t.blastProt();
-        }
-
-        return CombatRules.getDamageAfterMagicAbsorb(damage, totalProtection);
-    }
-
-    private float calculateExposureForSnapshot(Vec3 source, AABB box, AutoCrystalSnapshot snap) {
-        double dx = box.getXsize();
-        double dy = box.getYsize();
-        double dz = box.getZsize();
-
-        int steps = 2;
-        int hits = 0;
-        int misses = 0;
-
-        DamageUtils.ExposureContext ctx = new DamageUtils.ExposureContext(Vec3.ZERO, Vec3.ZERO);
-
-        for (double x = 0; x <= dx; x += dx / steps) {
-            for (double y = 0; y <= dy; y += dy / steps) {
-                for (double z = 0; z <= dz; z += dz / steps) {
-
-                    Vec3 pos = new Vec3(box.minX + x, box.minY + y, box.minZ + z);
-                    ctx.set(pos, source);
-                    if (raycastForSnapshot(ctx, snap) == null) {
-                        misses++;
-                    }
-
-                    hits++;
-                }
-            }
-        }
-
-        return hits == 0 ? 0f : (float) misses / hits;
-    }
-
-    private BlockHitResult raycastForSnapshot(DamageUtils.ExposureContext ctx, AutoCrystalSnapshot snap) {
-        return BlockGetter.traverseBlocks(
-                ctx.start(), ctx.end(),
-                ctx,
-                (context, pos) -> {
-
-                    if (snap.ignoredBlocks() != null && snap.ignoredBlocks().contains(pos))
-                        return null;
-
-                    BlockState state = getBlockFast(snap.level(), pos);
-                    if (state.isAir() || !state.isSolid()) return null;
-                    return state.getCollisionShape(snap.level(), pos).clip(context.start(), context.end(), pos);
-                },
-                context -> null
-        );
-    }
-
-    public static float getDamageAfterAbsorbForSnapshot(float damage, float armor, float toughness) {  //package net.minecraft.world.damagesource;  class CombatRules
-        float i = 2.0F + toughness / 4.0F;
-        float j = Mth.clamp(armor - damage / i, armor * 0.2F, 20.0F);
-        float k = j / 25.0F;
-        return damage * (1.0F - k);
-    }
 
     private Set<BlockPos> ignoredBlocks() {
         Set<BlockPos> ignored = new HashSet<>();

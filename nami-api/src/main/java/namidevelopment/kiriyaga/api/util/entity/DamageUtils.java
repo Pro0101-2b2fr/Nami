@@ -30,7 +30,7 @@ public class DamageUtils {
 
     public static final BlockRaycastProvider BLOCK_CHECK = (ctx, pos) -> {
         BlockState state = MC.level.getBlockState(pos);
-        if (!state.isSolid()) return null;
+        if (state.isAir() || !state.isSolid()) return null;
         return state.getCollisionShape(MC.level, pos).clip(ctx.start(), ctx.end(), pos);
     };
 
@@ -97,6 +97,40 @@ public class DamageUtils {
         return Math.max(damage, 0);
     }
 
+    public static float getDamageAfterAbsorb(float damage, float armor, float toughness) {
+        float i = 2.0F + toughness / 4.0F;
+        float j = net.minecraft.util.Mth.clamp(armor - damage / i, armor * 0.2F, 20.0F);
+        float k = j / 25.0F;
+        return damage * (1.0F - k);
+    }
+
+    public static float applyReductions(float damage, float armor, float toughness, int resistanceAmp, int prot, int blastProt, byte armorMask, net.minecraft.world.Difficulty difficulty, boolean assumeBestArmor, boolean scalesWithDifficulty) {
+        if (scalesWithDifficulty) {
+            switch (difficulty) {
+                case EASY -> damage = Math.min(damage / 2f + 1f, damage);
+                case HARD -> damage *= 1.5f;
+            }
+        }
+        damage = getDamageAfterAbsorb(damage, armor, toughness);
+        if (resistanceAmp >= 0) {
+            damage *= 1.0f - 0.2f * (resistanceAmp + 1);
+        }
+        
+        int totalProtection = 0;
+        if (assumeBestArmor) {
+            if ((armorMask & 1) != 0) totalProtection += 4;
+            if ((armorMask & 2) != 0) totalProtection += 4;
+            if ((armorMask & 8) != 0) totalProtection += 4;
+            if ((armorMask & 4) != 0) totalProtection += 8;
+        } else {
+            totalProtection += prot;
+            totalProtection += 2 * blastProt;
+        }
+
+        damage = CombatRules.getDamageAfterMagicAbsorb(damage, totalProtection);
+        return Math.max(damage, 0.0f);
+    }
+
     private static float reduceByProtection(LivingEntity entity, float damage, DamageSource source, boolean assumeBestArmor) {
         if (source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) return damage;
 
@@ -144,7 +178,7 @@ public class DamageUtils {
         return Math.max(damage, 0);
     }
 
-    private static float calculateExposure(Vec3 source, AABB box, BlockRaycastProvider provider) {
+    public static float calculateExposure(Vec3 source, AABB box, BlockRaycastProvider provider) {
         double dx = box.getXsize();
         double dy = box.getYsize();
         double dz = box.getZsize();

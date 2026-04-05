@@ -67,8 +67,7 @@ public class HostileUtils {
                 || e instanceof Skeleton
                 || e instanceof Stray
                 || e instanceof WitherSkeleton
-                || e instanceof Zombie && !(e instanceof ZombifiedPiglin) // yeah zombified piglin is inherited from
-                                                                          // zombie
+                || e instanceof Zombie && !(e instanceof ZombifiedPiglin)
                 || e instanceof Husk
                 || e instanceof Drowned
                 || e instanceof Vindicator

@@ -31,6 +31,7 @@ import net.minecraft.world.entity.monster.illager.Illusioner;
 import net.minecraft.world.entity.monster.illager.Pillager;
 import net.minecraft.world.entity.monster.illager.Vindicator;
 import net.minecraft.world.entity.monster.piglin.Piglin;
+import net.minecraft.world.entity.monster.piglin.PiglinBrute;
 import net.minecraft.world.entity.monster.skeleton.Bogged;
 import net.minecraft.world.entity.monster.skeleton.Skeleton;
 import net.minecraft.world.entity.monster.skeleton.Stray;
@@ -66,7 +67,8 @@ public class HostileUtils {
                 || e instanceof Skeleton
                 || e instanceof Stray
                 || e instanceof WitherSkeleton
-                || e instanceof Zombie && !(e instanceof ZombifiedPiglin) // yeah zombifiied piglin is inherited from zombie
+                || e instanceof Zombie && !(e instanceof ZombifiedPiglin) // yeah zombified piglin is inherited from
+                                                                          // zombie
                 || e instanceof Husk
                 || e instanceof Drowned
                 || e instanceof Vindicator
@@ -90,6 +92,7 @@ public class HostileUtils {
                 || e instanceof Slime
                 || e instanceof Phantom
                 || e instanceof Illusioner
+                || e instanceof PiglinBrute
                 || e instanceof Witch) {
             return true;
         }
@@ -121,19 +124,28 @@ public class HostileUtils {
 
     public static boolean isAggressiveNow(Entity e) {
         LocalPlayer player = MC.player;
-        if (player == null || MC.level == null) return false;
+        if (player == null || MC.level == null)
+            return false;
 
         long timeOfDay = MC.level.getDayTime() % 24000;
         boolean isNight = timeOfDay >= 13000 && timeOfDay <= 23000;
 
-        if (e instanceof EnderMan enderman) return enderman.isCreepy();
-        if (e instanceof ZombifiedPiglin piglin) return piglin.isAggressive();
-        if (e instanceof Piglin piglin) return !PlayerUtils.isPlayerWearingGold(player) || piglin.isAggressive();
-        if (e instanceof Spider spider) return spider.isAggressive() || isNight;
-        if (e instanceof CaveSpider) return true;
-        if (e instanceof PolarBear bear) return bear.isAggressive();
-        if (e instanceof Wolf wolf) return wolf.isAggressive();
-        if (e instanceof Bee bee) return bee.isAngry();
+        if (e instanceof EnderMan enderman)
+            return enderman.isCreepy();
+        if (e instanceof ZombifiedPiglin piglin)
+            return piglin.isAggressive();
+        if (e instanceof Piglin piglin)
+            return !PlayerUtils.isPlayerWearingGold(player) || piglin.isAggressive();
+        if (e instanceof Spider spider)
+            return spider.isAggressive() || isNight;
+        if (e instanceof CaveSpider)
+            return true;
+        if (e instanceof PolarBear bear)
+            return bear.isAggressive();
+        if (e instanceof Wolf wolf)
+            return wolf.isAggressive();
+        if (e instanceof Bee bee)
+            return bee.isAngry();
 
         return false;
     }

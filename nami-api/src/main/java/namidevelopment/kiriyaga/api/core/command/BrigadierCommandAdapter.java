@@ -35,7 +35,14 @@ public class BrigadierCommandAdapter {
         }
 
         for (CommandRoute route : routes) {
-            root.then(buildRoute(cmd, route));
+            String literal = route.getLiteral();
+            CommandArgument[] args = route.getArguments();
+
+            if ((literal == null || literal.isBlank()) && args.length == 0) {
+                root.executes(ctx -> execute(cmd, route, ctx));
+            } else {
+                root.then(buildRoute(cmd, route));
+            }
         }
 
         dispatcher.register(root);

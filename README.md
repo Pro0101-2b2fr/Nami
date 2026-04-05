@@ -1,7 +1,6 @@
 # Nami
 
-This is the last public version of nami made for minecraft 1.21.11
-It wont receive any updates
+This is my own version of public Nami. I'm using AI so don't expect me to upgrade a lot this client (besidse small fixes). Also I would like to thank Kiriyaga for this amazing client!!!
 
 ### Join our discord - https://discord.gg/auHTtNAqRq
 

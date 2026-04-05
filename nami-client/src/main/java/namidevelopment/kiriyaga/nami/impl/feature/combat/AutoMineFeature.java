@@ -75,6 +75,14 @@ public class AutoMineFeature extends Feature {
         List<BlockPos> blocks = getPriorityBlocks(target);
         if (blocks.isEmpty()) return;
 
+        if (m.currentTask != null && m.currentTask.isManual()) {
+            boolean isMined = m.currentTask.getBlockState().isAir() || m.currentTask.isInstantRemine();
+            if (!isMined) {
+                b = false;
+                return; // Let the player mine without being interrupted
+            }
+        }
+
         if (m.currentTask == null || !blocks.get(0).equals(m.currentTask.getBlockPos()) && (!m.currentTask.isInstantRemine() && isSurroundblock(m.currentTask.getBlockPos()))) {
             sendToSpeedMine(blocks.get(0));
             b = false;
@@ -262,7 +270,7 @@ public class AutoMineFeature extends Feature {
         SpeedMineFeature speedMine = FEATURE_SERVICE.getStorage().getByClass(SpeedMineFeature.class);
         if (speedMine == null || !speedMine.isEnabled()) return;
 
-        StartBreakingBlockEvent event1 = new StartBreakingBlockEvent(main, Direction.UP);
+        StartBreakingBlockEvent event1 = new StartBreakingBlockEvent(main, Direction.UP, false);
         EVENT_SERVICE.post(event1);
     }
 

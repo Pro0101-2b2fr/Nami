@@ -117,7 +117,10 @@ public class SpeedMineFeature extends Feature {
             MC.player.swing(InteractionHand.MAIN_HAND);
 
         if (currentTask != null) {
-            if (currentTask.getBlockPos().equals(event.blockPos)) return;
+            if (currentTask.getBlockPos().equals(event.blockPos)) {
+                if (event.manual) currentTask.setManual(true);
+                return;
+            }
 
             if (doubleMineTask == null) {
                 doubleMineTask = new BlockBreakingTask(currentTask.getBlockPos(), currentTask.getFacing(), 1.0f);
@@ -127,6 +130,7 @@ public class SpeedMineFeature extends Feature {
         }
 
         currentTask = new BlockBreakingTask(event.blockPos, event.direction, speed.get().floatValue());
+        currentTask.setManual(event.manual);
         instantRemineTimer.reset();
         instantRemineResetTimer.reset();
         startMining(currentTask);
@@ -464,6 +468,7 @@ public class SpeedMineFeature extends Feature {
         private int brokenCount;
         private int lastBrokenCount;
         private int doublemineHoldTicks;
+        private boolean manual;
 
         public BlockBreakingTask(BlockPos pos, Direction face, float speed) {
             this.blockPos = pos;
@@ -527,5 +532,8 @@ public class SpeedMineFeature extends Feature {
 
         public int getDoublemineHoldTicks() { return doublemineHoldTicks; }
         public void setDoublemineHoldTicks(int i) { doublemineHoldTicks = i; }
+
+        public boolean isManual() { return manual; }
+        public void setManual(boolean manual) { this.manual = manual; }
     }
 }

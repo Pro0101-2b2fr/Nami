@@ -68,4 +68,32 @@ public class KeyUtils {
         }
         return list;
     }
+
+    public static boolean isDigit(int keyCode) {
+        return (keyCode >= 48 && keyCode <= 57) || (keyCode >= 320 && keyCode <= 329);
+    }
+
+    public static String getDigit(int keyCode) {
+        if (keyCode >= 48 && keyCode <= 57) {
+            return String.valueOf((char) keyCode);
+        }
+        if (keyCode >= 320 && keyCode <= 329) {
+            return String.valueOf(keyCode - 320);
+        }
+        return "";
+    }
+
+    public static boolean isValidHex(int keyCode) {
+        return isDigit(keyCode) || (keyCode >= 65 && keyCode <= 70);
+    }
+
+    public static String getHexChar(int keyCode) {
+        if (isDigit(keyCode)) {
+            return getDigit(keyCode);
+        }
+        if (keyCode >= 65 && keyCode <= 70) {
+            return String.valueOf((char) keyCode);
+        }
+        return "";
+    }
 }

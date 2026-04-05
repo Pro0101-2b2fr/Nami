@@ -2,6 +2,7 @@ package namidevelopment.kiriyaga.nami.impl.gui.component.panel.settings;
 
 import namidevelopment.kiriyaga.nami.impl.feature.client.ColorFeature;
 import namidevelopment.kiriyaga.nami.impl.gui.base.BasePanel;
+import namidevelopment.kiriyaga.api.util.KeyUtils;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import org.lwjgl.glfw.GLFW;
@@ -93,14 +94,8 @@ public abstract class NumberSettingPanel<T extends Number> extends BasePanel {
             return;
         }
 
-        if (keyCode >= 48 && keyCode <= 57) {
-            input += (char) keyCode;
-            return;
-        }
-
-        if (keyCode >= 320 && keyCode <= 329) {
-            int digit = keyCode - 320;
-            input += digit;
+        if (KeyUtils.isDigit(keyCode)) {
+            input += KeyUtils.getDigit(keyCode);
             return;
         }
 

@@ -4,6 +4,7 @@ import namidevelopment.kiriyaga.api.model.setting.ColorSetting;
 import namidevelopment.kiriyaga.nami.impl.feature.client.ColorFeature;
 import namidevelopment.kiriyaga.nami.impl.gui.base.BasePanel;
 import namidevelopment.kiriyaga.api.util.ColorUtils;
+import namidevelopment.kiriyaga.api.util.KeyUtils;
 import namidevelopment.kiriyaga.api.util.render.RectangleRenderState;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -21,6 +22,8 @@ public class ColorSettingPanel extends BasePanel {
 
     private final ColorSetting setting;
     private boolean expanded = false;
+    private boolean waitingForHex = false;
+    private String hexInput = "";
 
     private static final int SV_SIZE = 80;
     private static final int HUE_HEIGHT = 6;
@@ -54,6 +57,11 @@ public class ColorSettingPanel extends BasePanel {
         int colorSize = HEIGHT - 4;
         int colorX = x + width - PADDING - colorSize;
         int colorY = y + 2;
+        String displayHex = waitingForHex ? "#" + hexInput + (System.currentTimeMillis() % 1000 < 500 ? "_" : "") : String.format("#%02X%02X%02X", setting.getRed(), setting.getGreen(), setting.getBlue());
+        int hexWidth = FONT_SERVICE.getWidth(displayHex);
+        int hexX = colorX - PADDING - hexWidth - 10;
+        FONT_SERVICE.drawText(context, displayHex, hexX, textY, toRGBA(textColor), true);
+
         fillRect(context, colorX, colorY, colorX + colorSize, colorY + colorSize, toRGBA(new Color(setting.getRed(), setting.getGreen(), setting.getBlue(), setting.getAlpha())));
 
         if (expanded) {
@@ -84,6 +92,22 @@ public class ColorSettingPanel extends BasePanel {
 
     @Override
     public boolean mouseClicked(int mouseX, int mouseY, int button) {
+        int colorSize = HEIGHT - 4;
+        int colorX = x + width - PADDING - colorSize;
+        String displayHex = waitingForHex ? "#" + hexInput : String.format("#%02X%02X%02X", setting.getRed(), setting.getGreen(), setting.getBlue());
+        int hexWidth = FONT_SERVICE.getWidth(displayHex);
+        int hexX = colorX - PADDING - hexWidth - 10;
+        
+        if (button == 0 && mouseX >= hexX && mouseX <= hexX + hexWidth && mouseY >= y && mouseY <= y + HEIGHT) {
+            waitingForHex = true;
+            hexInput = "";
+            return true;
+        }
+
+        if (waitingForHex && button == 0) {
+            waitingForHex = false;
+        }
+
         if (button == 1 && isHovered(mouseX, mouseY)) {
             onRightClick();
             return true;
@@ -127,6 +151,58 @@ public class ColorSettingPanel extends BasePanel {
         draggingSV = false;
         draggingAlpha = false;
         return wasDragging;
+    }
+
+    @Override
+    public void keyPressed(int keyCode) {
+        if (!waitingForHex) return;
+
+        if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER) {
+            applyHex();
+            return;
+        }
+
+        if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
+            waitingForHex = false;
+            hexInput = "";
+            return;
+        }
+
+        if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSPACE) {
+            if (!hexInput.isEmpty()) {
+                hexInput = hexInput.substring(0, hexInput.length() - 1);
+            }
+            return;
+        }
+
+        if (hexInput.length() < 6) {
+            if (KeyUtils.isValidHex(keyCode)) {
+                hexInput += KeyUtils.getHexChar(keyCode);
+            }
+        }
+    }
+
+    private void applyHex() {
+        try {
+            if (hexInput.isEmpty()) {
+                waitingForHex = false;
+                return;
+            }
+            int r = setting.getRed(), g = setting.getGreen(), b = setting.getBlue(), a = setting.getAlpha();
+            if (hexInput.length() >= 6) {
+                r = Integer.parseInt(hexInput.substring(0, 2), 16);
+                g = Integer.parseInt(hexInput.substring(2, 4), 16);
+                b = Integer.parseInt(hexInput.substring(4, 6), 16);
+            } else if (hexInput.length() == 3) {
+                r = Integer.parseInt(hexInput.substring(0, 1) + hexInput.substring(0, 1), 16);
+                g = Integer.parseInt(hexInput.substring(1, 2) + hexInput.substring(1, 2), 16);
+                b = Integer.parseInt(hexInput.substring(2, 3) + hexInput.substring(2, 3), 16);
+            }
+            setting.setValue(r, g, b, a);
+        } catch (Exception ignored) {
+        }
+        waitingForHex = false;
+        hexInput = "";
     }
 
     private void updateSV(double mouseX, double mouseY) {

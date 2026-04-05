@@ -55,13 +55,21 @@ public class WhitelistSettingPanel extends BasePanel {
     @Override
     public void onRightClick() {
         List<String> allIds = new ArrayList<>();
+        Set<WhitelistSetting.Type> types = setting.getAllowedTypes();
+        boolean any = types.contains(WhitelistSetting.Type.ANY);
 
-        BuiltInRegistries.ITEM.keySet().forEach(id -> allIds.add(id.toString()));
-        BuiltInRegistries.BLOCK.keySet().forEach(id -> allIds.add(id.toString()));
-        BuiltInRegistries.ENTITY_TYPE.keySet().forEach(id -> allIds.add(id.toString()));
-        BuiltInRegistries.SOUND_EVENT.keySet().forEach(id -> allIds.add(id.toString()));
-        BuiltInRegistries.PARTICLE_TYPE.keySet().forEach(id -> allIds.add(id.toString()));
+        if (any || types.contains(WhitelistSetting.Type.BLOCK))
+            BuiltInRegistries.BLOCK.keySet().forEach(id -> allIds.add(id.toString()));
+        if (any || types.contains(WhitelistSetting.Type.ITEM))
+            BuiltInRegistries.ITEM.keySet().forEach(id -> allIds.add(id.toString()));
+        if (any || types.contains(WhitelistSetting.Type.ENTITY))
+            BuiltInRegistries.ENTITY_TYPE.keySet().forEach(id -> allIds.add(id.toString()));
+        if (any || types.contains(WhitelistSetting.Type.SOUND))
+            BuiltInRegistries.SOUND_EVENT.keySet().forEach(id -> allIds.add(id.toString()));
+        if (any || types.contains(WhitelistSetting.Type.PARTICLE))
+            BuiltInRegistries.PARTICLE_TYPE.keySet().forEach(id -> allIds.add(id.toString()));
 
+        allIds.sort(String::compareTo);
         MC.setScreen(new WhitelistScreen(setting, allIds));
     }
 

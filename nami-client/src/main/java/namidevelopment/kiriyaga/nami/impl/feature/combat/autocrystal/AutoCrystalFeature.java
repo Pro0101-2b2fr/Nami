@@ -605,6 +605,25 @@ public class AutoCrystalFeature extends Feature {
             double dist = t.pos().distanceTo(explosionPos);
             if (dist > 12.0) continue;
 
+            double maxImpact = (1.0 - (dist / 12.0));
+            float maxBaseDamage = (float)((maxImpact * maxImpact + maxImpact) / 2.0 * 7.0 * 12.0 + 1.0);
+            float maxDmg = applyReductionsForSnapshot(maxBaseDamage, t, snap);
+
+            if (t.id() == snap.selfId()) {
+                if (maxDmg <= maxSelfDamage.get() && (!noSelfPop.get() || maxDmg + 1.5f < t.health() + t.absorption())) {
+                    continue;
+                }
+            } else {
+                Entity entity = MC.level.getEntity(t.id());
+                if (entity != null && SOCIALS_SERVICE.isFriend(entity.getName().getString())) continue;
+
+                double dynMin = getMinDamage(t.health(), t.absorption(), t.armorBroken());
+                if (maxDmg < dynMin) {
+                    dbg.dmgRejectedMin++;
+                    continue;
+                }
+            }
+
             double exposure = calculateExposureForSnapshot(explosionPos, t.box(), snap);
             if (exposure <= 0.0) continue;
 
@@ -627,9 +646,6 @@ public class AutoCrystalFeature extends Feature {
 
                 continue;
             }
-
-            if (SOCIALS_SERVICE.isFriend(MC.level.getEntity(t.id()).getName().getString()))
-                continue;
 
             double dynMin = getMinDamage(t.health(), t.absorption(), t.armorBroken());
 
@@ -714,6 +730,7 @@ public class AutoCrystalFeature extends Feature {
                         return null;
 
                     BlockState state = getBlockFast(snap.level(), pos);
+                    if (state.isAir() || !state.isSolid()) return null;
                     return state.getCollisionShape(snap.level(), pos).clip(context.start(), context.end(), pos);
                 },
                 context -> null
@@ -781,6 +798,24 @@ public class AutoCrystalFeature extends Feature {
             if (deadIds.contains(player.getId()))
                 continue;
 
+            double dist = player.position().distanceTo(crystalPos);
+            if (dist > 12.0) continue;
+
+            double maxImpact = (1.0 - (dist / 12.0));
+            float maxBaseDamage = (float)((maxImpact * maxImpact + maxImpact) / 2.0 * 7.0 * 12.0 + 1.0);
+            float maxDmg = DamageUtils.applyReductions(maxBaseDamage, player, MC.level.damageSources().explosion(null), assumeBestArmor.get());
+
+            if (e == MC.player) {
+                if (maxDmg <= maxSelfDamage.get() && maxDmg + 1.5f < MC.player.getHealth() + MC.player.getAbsorptionAmount()) {
+                    continue; 
+                }
+            } else {
+                if (SOCIALS_SERVICE.isFriend(e.getName().getString())) continue;
+                boolean armorBroken = isAnyArmorBroken(player);
+                double dynMin = getMinDamage(player.getHealth(), player.getAbsorptionAmount(), armorBroken);
+                if (maxDmg < dynMin) continue;
+            }
+
             float dmg = DamageUtils.crystalDamage(player, player.position(), player.getBoundingBox(), crystalPos, DamageUtils.BLOCK_CHECK, assumeBestArmor.get(), ignored);
 
             if (e == MC.player) {
@@ -793,14 +828,11 @@ public class AutoCrystalFeature extends Feature {
                 continue;
             }
 
-            if (SOCIALS_SERVICE.isFriend(e.getName().getString())) continue;
-
             boolean armorBroken = isAnyArmorBroken(player);
             double dynMin = getMinDamage(player.getHealth(), player.getAbsorptionAmount(), armorBroken);
 
             if (dmg < dynMin)
                 continue;
-
 
             total += dmg;
             any = true;

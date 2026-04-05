@@ -24,6 +24,9 @@ import net.minecraft.world.entity.monster.Silverfish;
 import net.minecraft.world.entity.monster.Slime;
 import net.minecraft.world.entity.monster.Vex;
 import net.minecraft.world.entity.monster.Witch;
+import net.minecraft.world.entity.monster.Zoglin;
+import net.minecraft.world.entity.monster.Endermite;
+import net.minecraft.world.entity.monster.warden.Warden;
 import net.minecraft.world.entity.monster.breeze.Breeze;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.monster.illager.Evoker;
@@ -92,6 +95,9 @@ public class HostileUtils {
                 || e instanceof Phantom
                 || e instanceof Illusioner
                 || e instanceof PiglinBrute
+                || e instanceof Zoglin
+                || e instanceof Endermite
+                || e instanceof Warden
                 || e instanceof Witch) {
             return true;
         }

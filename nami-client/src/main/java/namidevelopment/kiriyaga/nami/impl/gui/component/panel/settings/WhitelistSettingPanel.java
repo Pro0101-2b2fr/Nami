@@ -36,15 +36,10 @@ public class WhitelistSettingPanel extends BasePanel {
     public void render(GuiGraphics context, Font font, int mouseX, int mouseY) {
         boolean hovered = isHovered(mouseX, mouseY);
 
-        ColorFeature colorFeature = getColorFeature();
-        Color textColor = isEnabled()
-                ? colorFeature.getStyledTextColor(255)
-                : colorFeature.getStyledTextSecondColor(255);
-
         int textY = y + (HEIGHT - 8) / 2 + 1;
         int textX = x + PADDING + (hovered ? 1 : 0);
 
-        FONT_SERVICE.drawText(context, setting.getName(), textX, textY, toRGBA(textColor), true);
+        FONT_SERVICE.drawText(context, setting.getName(), textX, textY, toRGBA(getTextColor()), true);
     }
 
     @Override

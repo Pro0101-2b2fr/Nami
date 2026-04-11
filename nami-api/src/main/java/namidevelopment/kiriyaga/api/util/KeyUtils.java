@@ -18,7 +18,8 @@ public class KeyUtils {
 
         try {
             return Integer.parseInt(keyName);
-        } catch (NumberFormatException ignored) {}
+        } catch (NumberFormatException ignored) {
+        }
 
         for (int key = 0; key <= MAX_KEY; key++) {
             String name = getKeyName(key);
@@ -95,5 +96,17 @@ public class KeyUtils {
             return String.valueOf((char) keyCode);
         }
         return "";
+    }
+
+    public static boolean isDecimal(int keyCode) {
+        return keyCode == 46 || keyCode == 330 || keyCode == 44 || keyCode == 59;
+    }
+
+    public static boolean isMinus(int keyCode) {
+        return keyCode == 45 || keyCode == 333;
+    }
+
+    public static boolean isModifier(int keyCode) {
+        return (keyCode >= 340 && keyCode <= 348) || keyCode == 280 || keyCode == 281 || keyCode == 282;
     }
 }

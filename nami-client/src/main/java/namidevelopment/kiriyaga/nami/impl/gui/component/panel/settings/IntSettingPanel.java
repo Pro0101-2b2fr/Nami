@@ -45,6 +45,11 @@ public class IntSettingPanel extends NumberSettingPanel<Integer> {
     }
 
     @Override
+    protected boolean isDecimalAllowed() {
+        return false;
+    }
+
+    @Override
     protected String formatValue(double value) {
         return String.valueOf((int) value);
     }

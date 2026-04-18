@@ -36,6 +36,7 @@ public class TrapComponent {
 
     public final DoubleSetting range;
     public final BoolSetting airPlace;
+    public final BoolSetting support;
     public final BoolSetting grim;
     public final BoolSetting rotate;
     public final BoolSetting strictDirection;
@@ -58,6 +59,7 @@ public class TrapComponent {
     public TrapComponent(Feature feature) {
         range = feature.addSetting(new DoubleSetting("Range", 4.50, 1.0, 6.0));
         airPlace = feature.addSetting(new BoolSetting("AirPlace", false));
+        support = feature.addSetting(new BoolSetting("Support", true));
         grim = feature.addSetting(new BoolSetting("Grim", false));
         rotate = feature.addSetting(new BoolSetting("Rotate", true));
         strictDirection = feature.addSetting(new BoolSetting("StrictDirection", true));
@@ -75,6 +77,7 @@ public class TrapComponent {
         attackSwing = feature.addSetting(new BoolSetting("AttackSwing","Swing", true));
 
 
+        support.setShowCondition(() -> !airPlace.get());
         grim.setShowCondition(airPlace::get);
         strictDirection.setShowCondition(() -> !airPlace.get());
 
@@ -112,6 +115,51 @@ public class TrapComponent {
 
         targetPositions.clear();
         if (newTargets != null) targetPositions.addAll(newTargets);
+
+        if (support.get() && !airPlace.get() && !targetPositions.isEmpty()) {
+            List<BlockPos> supportTargets = new ArrayList<>();
+            for (BlockPos pos : targetPositions) {
+                if (MC.level.getBlockState(pos).canBeReplaced()) {
+                    List<Direction> dirs = InteractionUtils.getBlockPlaceDir(pos);
+                    boolean needsSupport = false;
+
+                    if (dirs.isEmpty()) {
+                        needsSupport = true;
+                    } else if (strictDirection.get()) {
+                        boolean hasValidStrict = false;
+                        Vec3 eyePos = MC.player.getEyePosition();
+                        for (Direction dir : dirs) {
+                            BlockPos n = pos.relative(dir.getOpposite());
+                            boolean flag = switch (dir) {
+                                case NORTH -> eyePos.z <= n.getZ() + 1e-3;
+                                case SOUTH -> eyePos.z >= n.getZ() + 1 - 1e-3;
+                                case WEST  -> eyePos.x <= n.getX() + 1e-3;
+                                case EAST  -> eyePos.x >= n.getX() + 1 - 1e-3;
+                                case DOWN  -> eyePos.y <= n.getY() + 1e-3;
+                                case UP    -> eyePos.y >= n.getY() + 1 - 1e-3;
+                            };
+                            if (flag) {
+                                hasValidStrict = true;
+                                break;
+                            }
+                        }
+                        if (!hasValidStrict) {
+                            needsSupport = true;
+                        }
+                    }
+
+                    if (needsSupport) {
+                        BlockPos supportPos = pos.below();
+                        if (MC.level.getBlockState(supportPos).canBeReplaced() && !targetPositions.contains(supportPos) && !supportTargets.contains(supportPos)) {
+                            supportTargets.add(supportPos);
+                        }
+                    }
+                }
+            }
+            for (int i = 0; i < supportTargets.size(); i++) {
+                targetPositions.add(i, supportTargets.get(i));
+            }
+        }
 
         if (trapFeature.mode.get() == TrapFeature.Mode.TICKS) {
             if (trapFeature.tickCD > 0)

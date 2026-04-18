@@ -17,9 +17,10 @@ public abstract class NumberSettingPanel<T extends Number> extends BasePanel {
     public static final int HEIGHT = 14;
     protected static final int PADDING = 3;
     protected static final int SLIDER_HEIGHT = 1;
-    protected boolean waiting = false;
-    protected String input = "";
 
+    protected static NumberSettingPanel<?> focusedPanel = null;
+
+    protected String input = "";
     protected boolean dragging = false;
 
     public NumberSettingPanel() {
@@ -33,6 +34,10 @@ public abstract class NumberSettingPanel<T extends Number> extends BasePanel {
     protected abstract void setValueFromDouble(double value);
     protected abstract String formatValue(double value);
 
+    protected boolean isDecimalAllowed() {
+        return true;
+    }
+
     @Override
     public void render(GuiGraphics context, Font font, int mouseX, int mouseY) {
         boolean hovered = isHovered(mouseX, mouseY);
@@ -43,8 +48,8 @@ public abstract class NumberSettingPanel<T extends Number> extends BasePanel {
 
         String val;
 
-        if (waiting) {
-            val = input + "";
+        if (focusedPanel == this) {
+            val = input + "_";
         } else {
             val = formatValue(getValue());
         }
@@ -55,7 +60,12 @@ public abstract class NumberSettingPanel<T extends Number> extends BasePanel {
 
     @Override
     public boolean mouseClicked(int mouseX, int mouseY, int button) {
-        if (!isHovered(mouseX, mouseY)) return false;
+        if (!isHovered(mouseX, mouseY)) {
+            if (focusedPanel == this && button == 0) {
+                applyValue();
+            }
+            return false;
+        }
 
         if (button == 0) {
             dragging = true;
@@ -64,7 +74,10 @@ public abstract class NumberSettingPanel<T extends Number> extends BasePanel {
         }
 
         if (button == 1) {
-            waiting = true;
+            if (focusedPanel != null && focusedPanel != this) {
+                focusedPanel.applyValue();
+            }
+            focusedPanel = this;
             input = "";
             dragging = false;
             return true;
@@ -75,14 +88,15 @@ public abstract class NumberSettingPanel<T extends Number> extends BasePanel {
 
     @Override
     public void keyPressed(int keyCode) {
-        if (!waiting) return;
-        if (keyCode == GLFW.GLFW_KEY_ENTER) {
+        if (focusedPanel != this) return;
+
+        if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
             applyValue();
             return;
         }
 
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-            waiting = false;
+            focusedPanel = null;
             input = "";
             return;
         }
@@ -99,22 +113,17 @@ public abstract class NumberSettingPanel<T extends Number> extends BasePanel {
             return;
         }
 
-        if (keyCode == 46 && !input.contains(".")) {
+        if (KeyUtils.isDecimal(keyCode) && isDecimalAllowed() && !input.contains(".")) {
             input += ".";
             return;
         }
 
-        if (keyCode == 330 && !input.contains(".")) {
-            input += ".";
-            return;
-        }
-
-        if (keyCode == 45 && input.isEmpty()) {
+        if (KeyUtils.isMinus(keyCode) && input.isEmpty()) {
             input += "-";
             return;
         }
-        waiting = false;
-        input = "";
+
+        if (KeyUtils.isModifier(keyCode)) return;
     }
 
     @Override
@@ -125,7 +134,7 @@ public abstract class NumberSettingPanel<T extends Number> extends BasePanel {
 
     @Override
     public void mouseDragged(int mouseX, int mouseY, int button) {
-        if (!waiting && dragging) {
+        if (focusedPanel != this && dragging) {
             updateValue(mouseX);
         }
     }
@@ -162,7 +171,7 @@ public abstract class NumberSettingPanel<T extends Number> extends BasePanel {
     private void applyValue() {
         try {
             if (input.isEmpty() || input.equals("-") || input.equals(".")) {
-                waiting = false;
+                focusedPanel = null;
                 input = "";
                 return;
             }
@@ -171,7 +180,7 @@ public abstract class NumberSettingPanel<T extends Number> extends BasePanel {
             setValueFromDouble(value);
         } catch (Exception ignored) {
         }
-        waiting = false;
+        focusedPanel = null;
         input = "";
     }
 

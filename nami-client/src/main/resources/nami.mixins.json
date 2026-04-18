@@ -36,6 +36,7 @@
     "MixinItemInHandRenderer",
     "MixinKeyboardHandler",
     "MixinLevelRenderer",
+    "MixinLivingEntityRenderer",
     "MixinLocalPlayer",
     "MixinMinecraft",
     "MixinMultiPlayerGameMode",

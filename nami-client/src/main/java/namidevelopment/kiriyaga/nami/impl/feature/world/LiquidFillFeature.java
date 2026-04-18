@@ -20,6 +20,7 @@ import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.AABB;
@@ -30,12 +31,11 @@ import java.awt.*;
 import java.util.*;
 import java.util.List;
 
-import static namidevelopment.kiriyaga.api.util.InteractionUtils.airPlace;
-
-import static namidevelopment.kiriyaga.api.util.RotationUtils.getXRotToVec;
-import static namidevelopment.kiriyaga.api.util.RotationUtils.getYRotToVec;
+import static namidevelopment.kiriyaga.api.util.InteractionUtils.*;
+import static namidevelopment.kiriyaga.api.util.RotationUtils.*;
 import static namidevelopment.kiriyaga.nami.Nami.*;
 import static namidevelopment.kiriyaga.api.NamiApi.*;
+
 @RegisterFeature
 public class LiquidFillFeature extends Feature {
 
@@ -50,6 +50,7 @@ public class LiquidFillFeature extends Feature {
     public final BoolSetting grim = addSetting(new BoolSetting("Grim", false));
     public final EnumSetting<LiquidType> liquidType = addSetting(new EnumSetting<>("Liquid", LiquidType.BOTH));
     public final BoolSetting rotate = addSetting(new BoolSetting("Rotate", true));
+    public final BoolSetting airPlace = addSetting(new BoolSetting("AirPlace", false));
 
     private int cooldown = 0;
     private BlockPos renderPos = null;
@@ -78,21 +79,22 @@ public class LiquidFillFeature extends Feature {
             renderPos = null;
             return;
         }
+        Item item = MC.player.getInventory().getItem(blockSlot).getItem();
 
-        int r = (int) Math.ceil(range.get());
-        BlockPos playerPos = MC.player.blockPosition();
+        double rangeVal = range.get();
+        int r = (int) Math.ceil(rangeVal);
+        Vec3 eyePos = MC.player.getEyePosition();
 
         List<BlockPos> positions = new ArrayList<>();
         for (int x = -r; x <= r; x++) {
             for (int y = -r; y <= r; y++) {
                 for (int z = -r; z <= r; z++) {
-                    positions.add(playerPos.offset(x, y, z));
+                    positions.add(MC.player.blockPosition().offset(x, y, z));
                 }
             }
         }
 
-        Vec3 playerVec = Vec3.atLowerCornerOf(playerPos); // fucking why i need this
-        positions.sort(Comparator.comparingDouble(pos -> Vec3.atLowerCornerOf(pos).distanceToSqr(playerVec)));
+        positions.sort(Comparator.comparingDouble(pos -> eyePos.distanceToSqr(pos.getCenter())));
 
         boolean placed = false;
 
@@ -121,18 +123,20 @@ public class LiquidFillFeature extends Feature {
             }
 
             if (!rotate.get() || ROTATION_SERVICE.getRequestHandler().isCompleted(LiquidFillFeature.class.getName())) {
+                boolean success = false;
+                if (airPlace.get()) {
+                    success = airPlace(pos, item, true, rangeVal, false, grim.get(), true, swing.get(), LiquidFillFeature.class.getName(),
+                            false);
+                } else {
+                    success = placeBlock(pos, item, true, rangeVal, false, false, true, swing.get(), LiquidFillFeature.class.getName(), false);
+                }
 
-                int currentSlot = MC.player.getInventory().getSelectedSlot();
-                if (currentSlot != blockSlot)
-                    INVENTORY_SERVICE.getSwapHandler().attemptSwitch(blockSlot, true);
-
-                BlockHitResult hit = new BlockHitResult(Vec3.atLowerCornerOf(pos).add(0.5,0.5,0.5), Direction.UP, pos, false);
-
-                airPlace(hit, grim.get(), swing.get());
-
-                cooldown = delay.get();
-                placed = true;
-                break;
+                if (success) {
+                    renderPos = pos;
+                    cooldown = delay.get();
+                    placed = true;
+                    break;
+                }
             }
         }
 

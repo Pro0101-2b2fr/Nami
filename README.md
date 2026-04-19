@@ -87,16 +87,15 @@ The default command prefix is `-`.
     git clone https://github.com/NamiDevelopment/Nami.git  
     cd nami
     ```
-2. In order to get nami-api dependency,you need to configure your PAT-token in your root .gradle/gradle.dependency
 
-3. Build with Gradle:
+2. Build with Gradle:
 
     ```bash
     ./gradlew build
     ```
 
 The compiled JAR will be located at:  
-`build/libs/nami-<version>.jar`
+`nami-client/build/libs/nami-<version>.jar`
 
 nami-client is packaged with nami-api inside of it.
 
